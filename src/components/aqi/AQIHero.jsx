@@ -149,7 +149,7 @@ export function AQIHero({ aqiData, onLocationClick, locationLoading, theme = "li
 
               {locationInfo.distanceText && (
                 <span
-                  className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${
+                  className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap shrink-0 ${
                     isDark
                       ? "bg-teal-950/60 text-teal-300 border border-teal-800/60"
                       : "bg-teal-50 text-teal-800 border border-teal-200"
@@ -164,7 +164,7 @@ export function AQIHero({ aqiData, onLocationClick, locationLoading, theme = "li
                   type="button"
                   onClick={onLocationClick}
                   disabled={locationLoading}
-                  className={`inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold border transition-all active:scale-95 disabled:opacity-50 cursor-pointer shadow-xs ${
+                  className={`inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold border whitespace-nowrap shrink-0 transition-all active:scale-95 disabled:opacity-50 cursor-pointer shadow-xs ${
                     isDark
                       ? "text-blue-400 bg-blue-950/60 border-blue-800/80 hover:bg-blue-900/60"
                       : "text-blue-700 bg-blue-50 border-blue-200 hover:bg-blue-100"

@@ -28,7 +28,7 @@ export function DailyForecast({ daily, currentTemp, theme = "light" }) {
         <div className="flex items-center space-x-2">
           <Calendar className={`w-4 h-4 ${isDark ? "text-teal-400" : "text-teal-600"}`} />
           <h3 className={`text-base sm:text-lg font-black ${isDark ? "text-white" : "text-slate-900"}`}>
-            5-Day Meteorological Outlook
+            5-Day Weather Forecast
           </h3>
         </div>
         <span className={`text-[11px] font-medium ${isDark ? "text-slate-400" : "text-slate-500"}`}>

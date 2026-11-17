@@ -15,28 +15,32 @@ export function TopPollutedCities({ cities = [], onSelectCity, theme = "light" }
           : "bg-white text-slate-800 border-slate-200/90 shadow-xl shadow-slate-200/50"
       }`}
     >
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between gap-3 mb-4">
         <div>
           <h3
             className={`text-xl font-bold flex items-center space-x-2 ${
               isDark ? "text-white" : "text-slate-900"
             }`}
           >
-            <Flame className="w-5 h-5 text-rose-500 animate-pulse" />
-            <span>Most Polluted Cities (Live Ranking)</span>
+            <Flame className="w-5 h-5 text-rose-500 shrink-0" />
+            <span>Most Polluted Cities</span>
           </h3>
           <p className={`text-xs mt-0.5 ${isDark ? "text-slate-400" : "text-slate-500"}`}>
-            Real-time high-risk AQI leaderboard across monitoring stations
+            Real-time pollution rankings across Indian cities
           </p>
         </div>
         <span
-          className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${
+          className={`inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap shrink-0 border shadow-xs ${
             isDark
               ? "text-rose-300 bg-rose-950/60 border-rose-800"
               : "text-rose-700 bg-rose-50 border-rose-200"
           }`}
         >
-          Live Telemetry
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+          </span>
+          <span>Live Rankings</span>
         </span>
       </div>
 

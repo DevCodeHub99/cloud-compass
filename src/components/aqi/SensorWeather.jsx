@@ -15,34 +15,34 @@ export function SensorWeather({ weather = {}, theme = "light" }) {
           : "bg-white text-slate-800 border-slate-200/90 shadow-xl shadow-slate-200/50"
       }`}
     >
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between gap-3 mb-4">
         <h3
-          className={`text-xl font-bold flex items-center space-x-2 ${
+          className={`text-lg sm:text-xl font-bold flex items-center space-x-2 ${
             isDark ? "text-white" : "text-slate-900"
           }`}
         >
-          <CloudSun className={`w-5 h-5 ${isDark ? "text-teal-400" : "text-teal-600"}`} />
-          <span>Sensor Meteorological Observations</span>
+          <CloudSun className={`w-5 h-5 shrink-0 ${isDark ? "text-teal-400" : "text-teal-600"}`} />
+          <span>Weather Conditions</span>
         </h3>
         {weather.condition?.text && (
           <div
-            className={`flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${
+            className={`inline-flex items-center space-x-1.5 px-3.5 py-1 rounded-full text-xs font-bold whitespace-nowrap shrink-0 border shadow-xs ${
               isDark
-                ? "bg-slate-800 text-slate-300 border-slate-700"
-                : "bg-slate-100 text-slate-700 border-slate-200"
+                ? "bg-slate-800 text-slate-200 border-slate-700"
+                : "bg-slate-100 text-slate-800 border-slate-200"
             }`}
           >
             {weather.condition?.icon && (
               <img
                 src={weather.condition.icon}
                 alt={weather.condition.text}
-                className="w-5 h-5 inline-block"
+                className="w-4 h-4 object-contain inline-block shrink-0"
                 onError={(e) => {
                   e.target.style.display = "none";
                 }}
               />
             )}
-            <span>{weather.condition.text}</span>
+            <span className="leading-none">{weather.condition.text}</span>
           </div>
         )}
       </div>

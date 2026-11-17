@@ -156,7 +156,7 @@ export function TrendChart({ trendData, theme = "light" }) {
             <span>24-Hour Air Quality Trend</span>
           </h3>
           <p className={`text-xs mt-0.5 ${isDark ? "text-slate-400" : "text-slate-500"}`}>
-            Interactive hourly pollution histogram & diurnal fluctuations
+            Hourly air quality history and 24-hour pollution pattern
           </p>
         </div>
 

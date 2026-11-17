@@ -43,21 +43,22 @@ export function NearbyStations({
             }`}
           >
             <Radio className={`w-5 h-5 ${isDark ? "text-teal-400" : "text-teal-600"} animate-pulse`} />
-            <span>Nearby Monitoring Sensors</span>
+            <span>Nearby Monitoring Stations</span>
           </h3>
           <p className={`text-xs mt-0.5 ${isDark ? "text-slate-400" : "text-slate-500"}`}>
-            Compare distance and pick any physical sensor of your choice
+            Compare distance and select a local monitoring station
           </p>
         </div>
 
         <span
-          className={`text-xs font-bold px-3 py-1.5 rounded-xl border self-start sm:self-auto ${
+          className={`inline-flex items-center space-x-1.5 text-xs font-bold px-3 py-1.5 rounded-full border shadow-xs whitespace-nowrap shrink-0 self-start sm:self-auto ${
             isDark
               ? "text-teal-300 bg-teal-950/60 border-teal-800/80"
               : "text-teal-800 bg-teal-50 border-teal-200"
           }`}
         >
-          ● {enrichedStations.length} Nearby Sensors
+          <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" />
+          <span>{enrichedStations.length} Nearby Stations</span>
         </span>
       </div>
 

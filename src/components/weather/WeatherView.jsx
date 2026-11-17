@@ -55,10 +55,10 @@ export function WeatherView({
       >
         <div className="mb-4 pb-2 border-b border-slate-100 dark:border-slate-800">
           <h3 className={`text-base sm:text-lg font-black ${theme === "dark" ? "text-white" : "text-slate-900"}`}>
-            Meteorological Intelligence
+            Atmospheric Conditions & Metrics
           </h3>
           <p className={`text-xs ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>
-            Comprehensive atmospheric telemetry, UV exposure & comfort ratings
+            UV index, wind gusts, humidity, pressure & visibility metrics
           </p>
         </div>
         <WeatherMetricsGrid weatherData={weatherData} theme={theme} />

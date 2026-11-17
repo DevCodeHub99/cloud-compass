@@ -86,25 +86,25 @@ export function CurrentWeather({
         <div className="flex items-center space-x-2">
           {current.isPhysicalSensor ? (
             <span
-              className={`inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-bold ${
+              className={`inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap shrink-0 shadow-xs ${
                 isDark
                   ? "bg-emerald-950/60 text-emerald-300 border border-emerald-800"
                   : "bg-emerald-50 text-emerald-800 border border-emerald-200"
               }`}
             >
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Physical Sensor Telemetry</span>
+              <span>Live Ground Sensor</span>
             </span>
           ) : (
             <span
-              className={`inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-bold ${
+              className={`inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap shrink-0 shadow-xs ${
                 isDark
                   ? "bg-slate-800/80 text-teal-300 border border-slate-700"
                   : "bg-teal-50 text-teal-800 border border-teal-200"
               }`}
             >
               <Radio className="w-3.5 h-3.5 text-teal-500" />
-              <span>Meteorological Feed</span>
+              <span>Live Weather Feed</span>
             </span>
           )}
         </div>

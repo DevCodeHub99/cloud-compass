@@ -134,13 +134,14 @@ export function PollutantGrid({ iaqi = {}, stationName = "", theme = "light" }) 
 
         <div className="flex items-center space-x-2 self-start sm:self-auto">
           <span
-            className={`text-xs font-bold px-3 py-1.5 rounded-xl border shadow-xs ${
+            className={`inline-flex items-center space-x-1.5 text-xs font-bold px-3 py-1.5 rounded-full border shadow-xs whitespace-nowrap shrink-0 ${
               isDark
                 ? "text-teal-300 bg-teal-950/60 border-teal-800/80"
                 : "text-teal-800 bg-teal-50 border-teal-200"
             }`}
           >
-            ● {monitoredKeys.length} Active Sensor Telemetry
+            <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" />
+            <span>{monitoredKeys.length} Monitored Pollutants</span>
           </span>
         </div>
       </div>
