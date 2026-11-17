@@ -128,13 +128,13 @@ export function TrendChart({ trendData, theme = "light" }) {
     return { val: stepVal, y };
   });
 
-  // Calculate tooltip coordinates clamped to canvas edges
-  const pillW = 46;
-  const pillH = 20;
-  const tooltipX = activeBar
-    ? Math.max(padX + pillW / 2, Math.min(svgWidth - padX - pillW / 2, activeBar.centerX))
-    : padX + pillW / 2;
-  const tooltipY = activeBar ? Math.max(8, activeBar.y - 24) : 8;
+  // Responsive tooltip coordinate percentages clamped to container boundaries
+  const tooltipLeftPct = activeBar
+    ? Math.max(6, Math.min(94, (activeBar.centerX / svgWidth) * 100))
+    : 50;
+  const tooltipTopPct = activeBar
+    ? Math.max(14, (activeBar.y / svgHeight) * 100)
+    : 14;
 
   return (
     <div
@@ -314,21 +314,10 @@ export function TrendChart({ trendData, theme = "light" }) {
                   ry={Math.min(3, bar.width / 2)}
                   fill={bar.badge.color}
                   opacity={barOpacity}
+                  stroke={isSelected ? (isDark ? "#ffffff" : "#0f172a") : "none"}
+                  strokeWidth={isSelected ? 1.5 : 0}
                   className="transition-all duration-150"
                 />
-
-                {/* Subtle White Top Cap Highlight on Selected Bar */}
-                {isSelected && (
-                  <rect
-                    x={bar.x}
-                    y={bar.y}
-                    width={bar.width}
-                    height={Math.min(3, Math.max(2, bar.height * 0.1))}
-                    rx={Math.min(2, bar.width / 2)}
-                    fill="#ffffff"
-                    opacity="0.9"
-                  />
-                )}
 
                 {/* Full-Height Column Hit-Box for Smooth Touch / Mouse Scrubbing */}
                 <rect
@@ -342,54 +331,47 @@ export function TrendChart({ trendData, theme = "light" }) {
             );
           })}
 
-          {/* Active Floating Tooltip (Shown directly above the selected bar) */}
+          {/* Active Vertical Indicator Line */}
           {activeBar && (
-            <g className="pointer-events-none transition-all duration-150">
-              {/* Vertical subtle indicator line */}
-              <line
-                x1={activeBar.centerX}
-                y1={activeBar.y}
-                x2={activeBar.centerX}
-                y2={baselineY}
-                stroke={activeBadge.color}
-                strokeWidth="1.5"
-                strokeDasharray="2 2"
-                opacity="0.75"
-              />
-
-              {/* Floating Pill Background */}
-              <rect
-                x={tooltipX - pillW / 2}
-                y={tooltipY}
-                width={pillW}
-                height={pillH}
-                rx="6"
-                fill={activeBadge.color}
-                className="shadow-md"
-              />
-
-              {/* Downward indicator tick */}
-              <polygon
-                points={`${tooltipX - 4},${tooltipY + pillH} ${tooltipX + 4},${
-                  tooltipY + pillH
-                } ${tooltipX},${tooltipY + pillH + 4}`}
-                fill={activeBadge.color}
-              />
-
-              {/* AQI Value inside Tooltip Pill */}
-              <text
-                x={tooltipX}
-                y={tooltipY + 14}
-                textAnchor="middle"
-                fontSize="11"
-                fontWeight="800"
-                fill={activeBadge.textColor === "text-gray-900" ? "#111827" : "#ffffff"}
-              >
-                {activeBar.val}
-              </text>
-            </g>
+            <line
+              x1={activeBar.centerX}
+              y1={activeBar.y}
+              x2={activeBar.centerX}
+              y2={baselineY}
+              stroke={activeBadge.color}
+              strokeWidth="1.5"
+              strokeDasharray="2 2"
+              opacity="0.8"
+              className="pointer-events-none"
+            />
           )}
         </svg>
+
+        {/* Floating Responsive HTML Tooltip Pill (Eliminates SVG aspect-ratio distortion on mobile) */}
+        {activeBar && (
+          <div
+            className="absolute pointer-events-none transition-all duration-75 ease-out z-20 flex flex-col items-center"
+            style={{
+              left: `${tooltipLeftPct}%`,
+              top: `calc(${tooltipTopPct}% - 6px)`,
+              transform: "translate(-50%, -100%)"
+            }}
+          >
+            <div
+              className="px-2.5 py-0.5 rounded-lg text-xs font-black shadow-lg flex items-center justify-center tracking-tight border border-white/20 select-none whitespace-nowrap"
+              style={{
+                backgroundColor: activeBadge.color,
+                color: activeBadge.textColor === "text-gray-900" ? "#111827" : "#ffffff"
+              }}
+            >
+              <span>{activeBar.val}</span>
+            </div>
+            <div
+              className="w-0 h-0 border-x-4 border-x-transparent border-t-[5px]"
+              style={{ borderTopColor: activeBadge.color }}
+            />
+          </div>
+        )}
       </div>
 
       {/* X-Axis Milestone Timeline Labels */}
