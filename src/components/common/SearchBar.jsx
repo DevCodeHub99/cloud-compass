@@ -119,7 +119,7 @@ export function SearchBar({
 
           {/* Autocomplete Suggestions or Search History Dropdown */}
           {isFocused && (
-            <div className={`absolute left-0 right-0 mt-2 rounded-2xl shadow-2xl p-3 z-30 border animate-in fade-in zoom-in-95 duration-150 max-h-80 overflow-y-auto ${
+            <div className={`absolute left-0 right-0 mt-2 rounded-2xl shadow-2xl p-3 z-30 border animate-in fade-in zoom-in-95 duration-150 max-h-80 overflow-y-auto overscroll-contain touch-pan-y ${
               isDark ? "bg-slate-900 text-slate-200 border-slate-800" : "bg-white text-slate-800 border-slate-200"
             }`}>
               {/* If query has suggestions */}
@@ -223,8 +223,9 @@ export function SearchBar({
           type="button"
           onClick={onLocationClick}
           disabled={locationLoading}
+          aria-label="Use my current GPS location"
           title="Use my current GPS location"
-          className="p-3 bg-white/20 hover:bg-white/30 text-white rounded-full transition-all duration-200 shadow-md flex items-center justify-center backdrop-blur-sm active:scale-95 disabled:opacity-60"
+          className="p-3 bg-white/20 hover:bg-white/30 text-white rounded-full transition-all duration-200 shadow-md flex items-center justify-center backdrop-blur-sm active:scale-95 disabled:opacity-60 cursor-pointer"
         >
           {locationLoading ? (
             <Loader2 className="w-5 h-5 animate-spin" />
@@ -244,7 +245,7 @@ export function SearchBar({
             key={city}
             type="button"
             onClick={() => onSearch(city)}
-            className={`px-2.5 py-0.5 rounded-full text-[11px] font-medium transition-colors flex-shrink-0 backdrop-blur-sm border select-none outline-none cursor-pointer ${
+            className={`px-3 py-1 rounded-full text-xs font-semibold transition-all flex-shrink-0 backdrop-blur-sm border select-none outline-none cursor-pointer active:scale-95 shadow-xs min-h-[30px] inline-flex items-center justify-center ${
               isDark
                 ? "bg-slate-800/80 hover:bg-slate-700 text-slate-200 border-slate-700/60"
                 : "bg-white/20 hover:bg-white/35 text-white border-white/25 shadow-sm"

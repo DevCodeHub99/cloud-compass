@@ -54,7 +54,7 @@ export function TopPollutedCities({ cities = [], onSelectCity, theme = "light" }
             <div
               key={idx}
               onClick={() => onSelectCity && item.city && onSelectCity(item.city)}
-              className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between group shadow-xs hover:shadow-md ${
+              className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between group shadow-xs hover:shadow-md active:scale-[0.98] ${
                 isDark
                   ? "bg-slate-800/80 hover:bg-slate-800 border-slate-700/80 hover:border-rose-500/60 text-white"
                   : "bg-slate-50/80 hover:bg-white border-slate-200 hover:border-rose-300 text-slate-900"

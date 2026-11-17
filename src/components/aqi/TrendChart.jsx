@@ -241,7 +241,6 @@ export function TrendChart({ trendData, theme = "light" }) {
         onMouseLeave={() => setHoverIndex(null)}
         onTouchStart={handleTouchMove}
         onTouchMove={handleTouchMove}
-        onTouchEnd={() => setHoverIndex(null)}
         className="relative w-full cursor-pointer select-none touch-none py-1"
         style={{ touchAction: "none" }}
       >
@@ -302,7 +301,7 @@ export function TrendChart({ trendData, theme = "light" }) {
                 key={bar.idx}
                 className="transition-opacity duration-150"
                 onMouseEnter={() => setHoverIndex(bar.idx)}
-                onClick={() => setHoverIndex(bar.idx)}
+                onClick={() => setHoverIndex((prev) => (prev === bar.idx ? null : bar.idx))}
               >
                 {/* Visual Rounded Bar */}
                 <rect

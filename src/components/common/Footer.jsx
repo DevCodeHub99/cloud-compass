@@ -31,7 +31,7 @@ export function Footer({ theme = "light" }) {
           isDark ? "text-slate-400" : "text-teal-200/90"
         }`}
       >
-        Live air quality and meteorological telemetry referenced courtesy of{" "}
+        Live air quality and meteorological observations courtesy of{" "}
         <a
           href="https://www.aqi.in"
           target="_blank"

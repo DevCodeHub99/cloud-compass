@@ -41,7 +41,7 @@ export class ErrorBoundary extends React.Component {
                 Something went wrong
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                An unexpected error occurred while rendering telemetry.
+                An unexpected error occurred while loading environmental data.
               </p>
             </div>
             <button

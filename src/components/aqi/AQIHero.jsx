@@ -16,21 +16,21 @@ import {
 } from "lucide-react";
 
 const CPCB_SPECTRUM_BANDS = [
-  { label: "Good", range: "0–50" },
-  { label: "Satisfactory", range: "51–100" },
-  { label: "Moderate", range: "101–200" },
-  { label: "Poor", range: "201–300" },
-  { label: "Very Poor", range: "301–400" },
-  { label: "Severe", range: "401–500+" }
+  { label: "Good", shortLabel: "Good", range: "0–50" },
+  { label: "Satisfactory", shortLabel: "Satisfactory", range: "51–100" },
+  { label: "Moderate", shortLabel: "Moderate", range: "101–200" },
+  { label: "Poor", shortLabel: "Poor", range: "201–300" },
+  { label: "Very Poor", shortLabel: "Very Poor", range: "301–400" },
+  { label: "Severe", shortLabel: "Severe", range: "401–500+" }
 ];
 
 const EPA_SPECTRUM_BANDS = [
-  { label: "Good", range: "0–50" },
-  { label: "Moderate", range: "51–100" },
-  { label: "Unhealthy SG", range: "101–150" },
-  { label: "Unhealthy", range: "151–200" },
-  { label: "Very Unhealthy", range: "201–300" },
-  { label: "Hazardous", range: "301–500+" }
+  { label: "Good", shortLabel: "Good", range: "0–50" },
+  { label: "Moderate", shortLabel: "Moderate", range: "51–100" },
+  { label: "Unhealthy SG", shortLabel: "Unhealthy SG", range: "101–150" },
+  { label: "Unhealthy", shortLabel: "Unhealthy", range: "151–200" },
+  { label: "Very Unhealthy", shortLabel: "V. Unhealthy", range: "201–300" },
+  { label: "Hazardous", shortLabel: "Hazardous", range: "301–500+" }
 ];
 
 export function AQIHero({ aqiData, onLocationClick, locationLoading, theme = "light" }) {
@@ -64,6 +64,13 @@ export function AQIHero({ aqiData, onLocationClick, locationLoading, theme = "li
   const pm10Val = pm10Raw !== undefined && pm10Raw !== null ? Math.round(pm10Raw) : null;
 
   const spectrumBands = standard === "cpcb" ? CPCB_SPECTRUM_BANDS : EPA_SPECTRUM_BANDS;
+
+  const handleSpectrumTouch = (e) => {
+    if (!e.touches || e.touches.length === 0) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (e.touches[0].clientX - rect.left) / rect.width));
+    setHoverAQI(Math.round(pct * 500));
+  };
 
   return (
     <div className="max-w-4xl mx-auto space-y-4">
@@ -300,56 +307,77 @@ export function AQIHero({ aqiData, onLocationClick, locationLoading, theme = "li
             </div>
 
             {/* Key Pollutants: PM2.5, PM10, TVOC, Noise */}
-            <div
-              className={`flex flex-wrap items-center gap-x-6 gap-y-2 text-sm font-semibold pt-1 ${
-                isDark ? "text-slate-300" : "text-slate-700"
-              }`}
-            >
+            <div className="flex flex-wrap items-center gap-2 pt-1">
               {pm25Val !== null && (
-                <div className="flex items-baseline space-x-1.5">
-                  <span className={`font-medium ${isDark ? "text-slate-400" : "text-slate-500"}`}>PM2.5:</span>
-                  <span className={`font-black text-base ${isDark ? "text-white" : "text-slate-900"}`}>{pm25Val}</span>
-                  <span className={`text-xs font-normal ${isDark ? "text-slate-400" : "text-slate-500"}`}>µg/m³</span>
+                <div
+                  className={`inline-flex items-center space-x-1.5 px-3 py-1 rounded-xl border font-semibold shadow-xs transition-colors ${
+                    isDark
+                      ? "bg-slate-800/80 border-slate-700/80 text-slate-200"
+                      : "bg-slate-100/90 border-slate-200 text-slate-800"
+                  }`}
+                >
+                  <span className={`text-[11px] font-medium ${isDark ? "text-slate-400" : "text-slate-500"}`}>PM2.5:</span>
+                  <span className="font-black text-sm">{pm25Val}</span>
+                  <span className={`text-[10px] font-normal ${isDark ? "text-slate-400" : "text-slate-500"}`}>µg/m³</span>
                 </div>
               )}
               {pm10Val !== null && (
-                <div className="flex items-baseline space-x-1.5">
-                  <span className={`font-medium ${isDark ? "text-slate-400" : "text-slate-500"}`}>PM10:</span>
-                  <span className={`font-black text-base ${isDark ? "text-white" : "text-slate-900"}`}>{pm10Val}</span>
-                  <span className={`text-xs font-normal ${isDark ? "text-slate-400" : "text-slate-500"}`}>µg/m³</span>
+                <div
+                  className={`inline-flex items-center space-x-1.5 px-3 py-1 rounded-xl border font-semibold shadow-xs transition-colors ${
+                    isDark
+                      ? "bg-slate-800/80 border-slate-700/80 text-slate-200"
+                      : "bg-slate-100/90 border-slate-200 text-slate-800"
+                  }`}
+                >
+                  <span className={`text-[11px] font-medium ${isDark ? "text-slate-400" : "text-slate-500"}`}>PM10:</span>
+                  <span className="font-black text-sm">{pm10Val}</span>
+                  <span className={`text-[10px] font-normal ${isDark ? "text-slate-400" : "text-slate-500"}`}>µg/m³</span>
                 </div>
               )}
               {iaqi.tvoc !== undefined && iaqi.tvoc !== null && (
-                <div className="flex items-baseline space-x-1.5">
-                  <span className={`font-medium ${isDark ? "text-slate-400" : "text-slate-500"}`}>TVOC:</span>
-                  <span className={`font-black text-base ${isDark ? "text-white" : "text-slate-900"}`}>
+                <div
+                  className={`inline-flex items-center space-x-1.5 px-3 py-1 rounded-xl border font-semibold shadow-xs transition-colors ${
+                    isDark
+                      ? "bg-slate-800/80 border-slate-700/80 text-slate-200"
+                      : "bg-slate-100/90 border-slate-200 text-slate-800"
+                  }`}
+                >
+                  <span className={`text-[11px] font-medium ${isDark ? "text-slate-400" : "text-slate-500"}`}>TVOC:</span>
+                  <span className="font-black text-sm">
                     {Number(iaqi.tvoc) % 1 !== 0 ? Number(iaqi.tvoc).toFixed(2) : iaqi.tvoc}
                   </span>
-                  <span className={`text-xs font-normal ${isDark ? "text-slate-400" : "text-slate-500"}`}>ppm</span>
+                  <span className={`text-[10px] font-normal ${isDark ? "text-slate-400" : "text-slate-500"}`}>ppm</span>
                 </div>
               )}
               {iaqi.noise !== undefined && iaqi.noise !== null && (
-                <div className="flex items-baseline space-x-1.5">
-                  <span className={`font-medium ${isDark ? "text-slate-400" : "text-slate-500"}`}>Noise:</span>
-                  <span className={`font-black text-base ${isDark ? "text-white" : "text-slate-900"}`}>
+                <div
+                  className={`inline-flex items-center space-x-1.5 px-3 py-1 rounded-xl border font-semibold shadow-xs transition-colors ${
+                    isDark
+                      ? "bg-slate-800/80 border-slate-700/80 text-slate-200"
+                      : "bg-slate-100/90 border-slate-200 text-slate-800"
+                  }`}
+                >
+                  <span className={`text-[11px] font-medium ${isDark ? "text-slate-400" : "text-slate-500"}`}>Noise:</span>
+                  <span className="font-black text-sm">
                     {Number(iaqi.noise).toFixed(1)}
                   </span>
-                  <span className={`text-xs font-normal ${isDark ? "text-slate-400" : "text-slate-500"}`}>dB</span>
+                  <span className={`text-[10px] font-normal ${isDark ? "text-slate-400" : "text-slate-500"}`}>dB</span>
                 </div>
               )}
             </div>
 
             {/* Horizontal Spectrum Range Slider */}
             <div className="pt-3">
-              {/* Category Labels Above Track */}
+              {/* Category Labels Above Track with Mobile Short Labels */}
               <div
-                className={`grid grid-cols-6 text-[10px] sm:text-xs font-bold text-center mb-2 ${
+                className={`grid grid-cols-6 text-[9px] sm:text-xs font-bold text-center mb-2 gap-0.5 ${
                   isDark ? "text-slate-400" : "text-slate-600"
                 }`}
               >
                 {spectrumBands.map((b, i) => (
                   <span key={i} className="truncate px-0.5">
-                    {b.label}
+                    <span className="hidden sm:inline">{b.label}</span>
+                    <span className="sm:hidden">{b.shortLabel || b.label}</span>
                   </span>
                 ))}
               </div>
@@ -362,7 +390,10 @@ export function AQIHero({ aqiData, onLocationClick, locationLoading, theme = "li
                   setHoverAQI(Math.round(pct * 500));
                 }}
                 onMouseLeave={() => setHoverAQI(null)}
-                className={`relative w-full h-4 rounded-full shadow-inner cursor-crosshair group/track ${
+                onTouchStart={handleSpectrumTouch}
+                onTouchMove={handleSpectrumTouch}
+                onTouchEnd={() => setHoverAQI(null)}
+                className={`relative w-full h-4 rounded-full shadow-inner cursor-crosshair group/track select-none touch-none ${
                   isDark ? "bg-slate-800" : "bg-slate-200"
                 }`}
               >

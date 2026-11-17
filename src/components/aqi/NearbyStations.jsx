@@ -85,7 +85,7 @@ export function NearbyStations({
             <div
               key={idx}
               onClick={() => onSelectStation && onSelectStation(st)}
-              className={`p-3.5 rounded-2xl border transition-all duration-300 cursor-pointer flex flex-col justify-between group hover:-translate-y-0.5 hover:shadow-md ${
+              className={`p-3.5 rounded-2xl border transition-all duration-300 cursor-pointer flex flex-col justify-between group hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98] ${
                 isSelected
                   ? isDark
                     ? "bg-teal-950/60 border-teal-500 ring-2 ring-teal-500/30 text-white"

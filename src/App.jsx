@@ -453,15 +453,16 @@ export function App() {
 
       {/* Dismissible Error Banner */}
       {error && (
-        <div className="flex items-center justify-between bg-rose-50 border border-rose-200 text-rose-800 px-4 py-3 rounded-xl max-w-4xl mx-auto mt-3 shadow-md text-sm animate-in fade-in duration-200">
+        <div className="flex items-center justify-between bg-rose-50 dark:bg-rose-950/80 border border-rose-200 dark:border-rose-900/60 text-rose-800 dark:text-rose-200 px-4 py-3 rounded-2xl max-w-4xl mx-auto mt-3 shadow-md text-sm animate-in fade-in duration-200">
           <div className="flex items-center space-x-2">
-            <AlertCircle className="w-5 h-5 text-rose-600 flex-shrink-0" />
-            <span>{error}</span>
+            <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-400 flex-shrink-0" />
+            <span className="font-medium">{error}</span>
           </div>
           <button
             type="button"
             onClick={() => setError(null)}
-            className="text-rose-500 hover:text-rose-700 p-1"
+            aria-label="Dismiss error notification"
+            className="text-rose-500 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-200 p-1 rounded-lg transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
