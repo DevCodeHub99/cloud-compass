@@ -118,14 +118,25 @@ export function AQIHero({ aqiData, onLocationClick, locationLoading, theme = "li
               </span>
             </div>
 
-            {/* Clean Location Title */}
-            <h2
-              className={`text-xl sm:text-2xl font-black tracking-tight leading-tight ${
-                isDark ? "text-white" : "text-slate-900"
-              }`}
-            >
-              {locationInfo.title} Air Quality
-            </h2>
+            {/* Hierarchical Location Headline as per Industry Best Practices */}
+            <div className="flex items-baseline flex-wrap gap-x-2.5 gap-y-0.5 pt-0.5">
+              <h2
+                className={`text-xl sm:text-2xl lg:text-3xl font-black tracking-tight leading-tight ${
+                  isDark ? "text-white" : "text-slate-900"
+                }`}
+              >
+                {locationInfo.primary}
+              </h2>
+              {locationInfo.secondary && (
+                <span
+                  className={`text-xs sm:text-sm font-semibold tracking-wide ${
+                    isDark ? "text-slate-400" : "text-slate-500"
+                  }`}
+                >
+                  {locationInfo.secondary}
+                </span>
+              )}
+            </div>
 
             {/* Station metadata with formatted distance units */}
             <div className="flex flex-wrap items-center gap-2 text-xs pt-1">

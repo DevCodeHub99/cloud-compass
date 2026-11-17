@@ -167,12 +167,13 @@ export function normalizeAQIWeatherData(locationData) {
   const astronomy = calculateSolarCycle(lat, lon);
 
   const locInfo = formatLocationInfo(locationData);
-  const cityName = locInfo.title;
 
   return {
     source: "aqi.in Live Telemetry",
     city: {
-      name: cityName,
+      name: locInfo.primary,
+      secondary: locInfo.secondary,
+      fullHierarchy: locInfo.fullHierarchy,
       station: locInfo.stationName,
       country: locInfo.country || "IN",
       state: locInfo.state || "",

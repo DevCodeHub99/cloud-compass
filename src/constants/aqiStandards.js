@@ -277,7 +277,11 @@ export function formatLocationInfo(data = {}) {
   if (!data) {
     return {
       title: "Local Area",
+      primary: "Local Area",
+      secondary: "",
+      fullHierarchy: "Local Area",
       city: "Local Area",
+      neighborhood: "",
       stationName: "Ground Sensor",
       distanceText: null
     };
@@ -299,20 +303,52 @@ export function formatLocationInfo(data = {}) {
   const neighborhood = rawLoc || stationParts[0] || "";
   const city = rawCity || (stationParts.length > 1 ? stationParts[1] : "");
 
-  // Determine primary display title without repeating neighborhood & city if identical
-  let title = "";
-  if (neighborhood && city && neighborhood.toLowerCase() !== city.toLowerCase()) {
-    title = `${neighborhood}, ${city}`;
-  } else if (city) {
-    title = city;
-  } else if (neighborhood) {
-    title = neighborhood;
-  } else {
-    title = stationParts[0] || "Local Area";
+  // Build clean non-duplicate parts array for full hierarchy
+  const parts = [];
+  if (neighborhood) parts.push(neighborhood);
+  if (city && !parts.some((p) => p.toLowerCase() === city.toLowerCase())) {
+    parts.push(city);
+  }
+  if (rawState && !parts.some((p) => p.toLowerCase() === rawState.toLowerCase())) {
+    parts.push(rawState);
+  }
+  if (rawCountry && !parts.some((p) => p.toLowerCase() === rawCountry.toLowerCase())) {
+    parts.push(rawCountry);
   }
 
-  // Determine concise station name
-  const distinctStation = neighborhood || stationParts[0] || title;
+  const fullHierarchy = parts.join(", ");
+
+  // Two-tier hierarchical breakdown: primary (locality/city) and secondary (state/country)
+  let primary = "";
+  let secondary = "";
+
+  if (neighborhood && city && neighborhood.toLowerCase() !== city.toLowerCase()) {
+    primary = `${neighborhood}, ${city}`;
+    const secondaryParts = [];
+    if (rawState && rawState.toLowerCase() !== city.toLowerCase()) {
+      secondaryParts.push(rawState);
+    }
+    if (rawCountry) {
+      secondaryParts.push(rawCountry);
+    }
+    secondary = secondaryParts.join(", ");
+  } else if (city) {
+    primary = city;
+    const secondaryParts = [];
+    if (rawState && rawState.toLowerCase() !== city.toLowerCase()) {
+      secondaryParts.push(rawState);
+    }
+    if (rawCountry) {
+      secondaryParts.push(rawCountry);
+    }
+    secondary = secondaryParts.join(", ");
+  } else {
+    primary = parts[0] || "Local Area";
+    secondary = parts.slice(1).join(", ");
+  }
+
+  // Concise station name
+  const distinctStation = neighborhood || stationParts[0] || primary;
 
   // Format distance with metric unit
   let distanceText = null;
@@ -324,9 +360,12 @@ export function formatLocationInfo(data = {}) {
   }
 
   return {
-    title,
+    title: primary,
+    primary,
+    secondary,
+    fullHierarchy,
     neighborhood,
-    city: city || title,
+    city: city || primary,
     stationName: distinctStation,
     state: rawState,
     country: rawCountry,

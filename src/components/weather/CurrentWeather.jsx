@@ -49,14 +49,16 @@ export function CurrentWeather({
         <div>
           <div className="flex items-center space-x-2">
             <MapPin className={`w-5 h-5 flex-shrink-0 ${isDark ? "text-teal-400" : "text-teal-600"}`} />
-            <h2 className={`text-xl sm:text-2xl font-black tracking-tight ${isDark ? "text-white" : "text-slate-900"}`}>
-              {city.name}
-              {city.country &&
-              city.country !== "IN" &&
-              !city.name.toLowerCase().includes(city.country.toLowerCase())
-                ? `, ${city.country}`
-                : ""}
-            </h2>
+            <div className="flex items-baseline flex-wrap gap-x-2.5 gap-y-0.5">
+              <h2 className={`text-xl sm:text-2xl font-black tracking-tight ${isDark ? "text-white" : "text-slate-900"}`}>
+                {city.name}
+              </h2>
+              {city.secondary && (
+                <span className={`text-xs sm:text-sm font-semibold tracking-wide ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+                  {city.secondary}
+                </span>
+              )}
+            </div>
             {onLocationClick && (
               <button
                 type="button"
