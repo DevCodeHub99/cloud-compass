@@ -5,6 +5,7 @@ import { SensorWeather } from "./SensorWeather";
 import { TrendChart } from "./TrendChart";
 import { NearbyStations } from "./NearbyStations";
 import { TopPollutedCities } from "./TopPollutedCities";
+import { formatLocationInfo } from "../../constants/aqiStandards";
 
 export function AQIView({
   aqiData,
@@ -32,7 +33,7 @@ export function AQIView({
       />
       <PollutantGrid
         iaqi={{ ...aqiData, ...(aqiData.iaqi || {}) }}
-        stationName={aqiData.station || aqiData.location || aqiData.city}
+        stationName={formatLocationInfo(aqiData).title}
         theme={theme}
       />
       <SensorWeather weather={aqiData.weather} theme={theme} />

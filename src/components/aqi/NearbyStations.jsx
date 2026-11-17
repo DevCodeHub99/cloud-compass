@@ -1,6 +1,6 @@
 import React from "react";
 import { Radio, CheckCircle, Navigation2 } from "lucide-react";
-import { getCPCBBadge } from "../../constants/aqiStandards";
+import { getCPCBBadge, formatLocationInfo } from "../../constants/aqiStandards";
 import { calculateDistance } from "../../services/aqiService";
 
 export function NearbyStations({
@@ -78,6 +78,8 @@ export function NearbyStations({
             st.station === activeStationSlug ||
             st.location === activeStationSlug;
 
+          const locInfo = formatLocationInfo(st);
+
           return (
             <div
               key={idx}
@@ -106,14 +108,14 @@ export function NearbyStations({
                           : "group-hover:text-teal-700 text-slate-900"
                       }`}
                     >
-                      {st.station || st.location || "Station"}
+                      {locInfo.stationName}
                     </p>
                     {isSelected && (
                       <CheckCircle className={`w-3.5 h-3.5 flex-shrink-0 ${isDark ? "text-teal-400" : "text-teal-600"}`} />
                     )}
                   </div>
                   <p className={`text-[11px] truncate mt-0.5 ${isDark ? "text-slate-400" : "text-slate-500"}`}>
-                    {st.city || st.state || ""}
+                    {locInfo.city}
                   </p>
                 </div>
 

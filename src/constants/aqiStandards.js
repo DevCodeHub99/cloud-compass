@@ -268,3 +268,68 @@ export const POLLUTANT_SPECS = {
     description: "Ambient carbon dioxide concentration indicator of ventilation."
   }
 };
+
+/**
+ * Normalizes location metadata, removing redundant city/state repetitions
+ * and deriving clean display titles, distinct station names, and formatted distance units.
+ */
+export function formatLocationInfo(data = {}) {
+  if (!data) {
+    return {
+      title: "Local Area",
+      city: "Local Area",
+      stationName: "Ground Sensor",
+      distanceText: null
+    };
+  }
+
+  const rawLoc = (data.location || "").trim();
+  const rawCity = (data.city || "").trim();
+  const rawState = (data.state || "").trim();
+  const rawCountry = (data.country || "").trim();
+  const rawStation = (data.station || "").trim();
+
+  // If station is a full address string like "Sultanpuri, New Delhi, Delhi, India",
+  // extract individual comma-separated segments
+  const stationParts = rawStation
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const neighborhood = rawLoc || stationParts[0] || "";
+  const city = rawCity || (stationParts.length > 1 ? stationParts[1] : "");
+
+  // Determine primary display title without repeating neighborhood & city if identical
+  let title = "";
+  if (neighborhood && city && neighborhood.toLowerCase() !== city.toLowerCase()) {
+    title = `${neighborhood}, ${city}`;
+  } else if (city) {
+    title = city;
+  } else if (neighborhood) {
+    title = neighborhood;
+  } else {
+    title = stationParts[0] || "Local Area";
+  }
+
+  // Determine concise station name
+  const distinctStation = neighborhood || stationParts[0] || title;
+
+  // Format distance with metric unit
+  let distanceText = null;
+  if (data.distance !== undefined && data.distance !== null && data.distance !== "") {
+    const dNum = parseFloat(data.distance);
+    if (!isNaN(dNum)) {
+      distanceText = `${dNum < 10 ? dNum.toFixed(2) : dNum.toFixed(1)} km`;
+    }
+  }
+
+  return {
+    title,
+    neighborhood,
+    city: city || title,
+    stationName: distinctStation,
+    state: rawState,
+    country: rawCountry,
+    distanceText
+  };
+}

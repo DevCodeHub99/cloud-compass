@@ -50,7 +50,12 @@ export function CurrentWeather({
           <div className="flex items-center space-x-2">
             <MapPin className={`w-5 h-5 flex-shrink-0 ${isDark ? "text-teal-400" : "text-teal-600"}`} />
             <h2 className={`text-xl sm:text-2xl font-black tracking-tight ${isDark ? "text-white" : "text-slate-900"}`}>
-              {city.name}{city.country ? `, ${city.country}` : ""}
+              {city.name}
+              {city.country &&
+              city.country !== "IN" &&
+              !city.name.toLowerCase().includes(city.country.toLowerCase())
+                ? `, ${city.country}`
+                : ""}
             </h2>
             {onLocationClick && (
               <button

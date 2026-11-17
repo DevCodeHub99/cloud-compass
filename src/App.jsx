@@ -17,6 +17,7 @@ import {
   fetchTopPollutedCities
 } from "./services/aqiService";
 import { DEFAULT_LOCATION, STORAGE_KEYS } from "./constants/api";
+import { formatLocationInfo } from "./constants/aqiStandards";
 import { logger, trackEvent, captureException } from "./utils/logger";
 import { AlertCircle, X, Wind, Sun } from "lucide-react";
 
@@ -145,11 +146,8 @@ export function App() {
 
         const stationLat = aqiClosest.latitude || lat;
         const stationLon = aqiClosest.longitude || lon;
-        const stationCity =
-          aqiClosest.station ||
-          aqiClosest.city ||
-          aqiClosest.location ||
-          "Local Area";
+        const locInfo = formatLocationInfo(aqiClosest);
+        const stationCity = locInfo.title;
 
         const newLoc = {
           city: stationCity,
@@ -219,11 +217,8 @@ export function App() {
           setWeatherData(normalizeAQIWeatherData(aqiInfo));
         }
 
-        const stationCity =
-          aqiInfo.station ||
-          aqiInfo.city ||
-          aqiInfo.location ||
-          cityName;
+        const locInfo = formatLocationInfo(aqiInfo);
+        const stationCity = locInfo.title || cityName;
         const lat = aqiInfo.latitude || aqiInfo.city_lat;
         const lon = aqiInfo.longitude || aqiInfo.city_lon;
 

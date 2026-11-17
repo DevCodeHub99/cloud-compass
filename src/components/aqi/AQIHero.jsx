@@ -1,5 +1,10 @@
 import React, { useState } from "react";
-import { getCPCBBadge, getUSEPABadge, formatAQITimestamp } from "../../constants/aqiStandards";
+import {
+  getCPCBBadge,
+  getUSEPABadge,
+  formatAQITimestamp,
+  formatLocationInfo
+} from "../../constants/aqiStandards";
 import {
   Droplets,
   Wind,
@@ -50,6 +55,7 @@ export function AQIHero({ aqiData, onLocationClick, locationLoading, theme = "li
   const markerPercent = Math.min(Math.max((displayAQI / 500) * 100, 2), 98);
 
   const { time: updatedTime, relative: updatedRelative } = formatAQITimestamp(aqiData.updated_at);
+  const locationInfo = formatLocationInfo(aqiData);
 
   const weather = aqiData.weather || {};
   const pm25Raw = iaqi.pm25 ?? aqiData.pm25;
@@ -112,30 +118,30 @@ export function AQIHero({ aqiData, onLocationClick, locationLoading, theme = "li
               </span>
             </div>
 
-            {/* City Title matching aqi.in format */}
+            {/* Clean Location Title (Eliminates repeated SEO scraper keywords) */}
             <h2
               className={`text-xl sm:text-2xl font-black tracking-tight leading-tight ${
                 isDark ? "text-white" : "text-slate-900"
               }`}
             >
-              {aqiData.city || aqiData.location || "City"} Air Quality Index (AQI) | Air Pollution
+              {locationInfo.title} Air Quality
             </h2>
 
-            {/* Subtitle description matching aqi.in */}
+            {/* Subtitle without redundant city string duplication */}
             <p className={`text-xs sm:text-sm font-medium ${isDark ? "text-slate-400" : "text-slate-500"}`}>
-              Real-time PM2.5, PM10 air pollution level in {aqiData.city || aqiData.location || "City"}
+              Real-time PM2.5 & PM10 ground-level pollution telemetry
             </p>
 
-            {/* Station Subtitle with Locate Me */}
+            {/* Station Subtitle with formatted distance units */}
             <div className="flex flex-wrap items-center gap-2 text-xs pt-0.5">
               <span className={isDark ? "text-slate-300" : "text-slate-600"}>
                 Sensor:{" "}
                 <strong className={isDark ? "text-teal-400 font-bold" : "text-teal-700 font-bold"}>
-                  {aqiData.station || aqiData.location || aqiData.city || "Neighborhood Sensor"}
+                  {locationInfo.stationName} Station
                 </strong>
               </span>
 
-              {aqiData.distance && (
+              {locationInfo.distanceText && (
                 <span
                   className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${
                     isDark
@@ -143,7 +149,7 @@ export function AQIHero({ aqiData, onLocationClick, locationLoading, theme = "li
                       : "bg-teal-50 text-teal-800 border border-teal-200"
                   }`}
                 >
-                  Nearest: {aqiData.distance}
+                  Nearest: {locationInfo.distanceText}
                 </span>
               )}
 

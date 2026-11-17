@@ -1,5 +1,6 @@
 import { fetchAQIBySlug, fetchAQIByCoords, searchAQILocations } from "./aqiService.js";
 import { calculateSolarCycle } from "../utils/solarCalculator.js";
+import { formatLocationInfo } from "../constants/aqiStandards.js";
 
 const DEFAULT_WEATHER_ICON = "https://apiserver.aqi.in/uploads/weather-icons/1.svg";
 
@@ -165,19 +166,16 @@ export function normalizeAQIWeatherData(locationData) {
   const lon = locationData.longitude || locationData.city_lon;
   const astronomy = calculateSolarCycle(lat, lon);
 
-  const cityName =
-    locationData.station ||
-    locationData.city ||
-    locationData.location ||
-    (locationData.slug ? locationData.slug.split("/").pop().replace(/-/g, " ") : "Location");
+  const locInfo = formatLocationInfo(locationData);
+  const cityName = locInfo.title;
 
   return {
     source: "aqi.in Live Telemetry",
     city: {
       name: cityName,
-      station: locationData.station || locationData.location || cityName,
-      country: locationData.country || "IN",
-      state: locationData.state || "",
+      station: locInfo.stationName,
+      country: locInfo.country || "IN",
+      state: locInfo.state || "",
       coord: {
         lat,
         lon
