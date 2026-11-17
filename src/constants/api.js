@@ -1,10 +1,10 @@
 export const AQI_API_BASE =
   import.meta.env?.VITE_AQI_API_BASE || "https://apiserver.aqi.in";
 
-// Read-only bootstrap token for aqi.in public telemetry
+// Read-only bootstrap token for aqi.in public telemetry (7-day validity cycle)
 export const DEFAULT_AQI_TOKEN =
   import.meta.env?.VITE_AQI_TOKEN ||
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySUQiOjEsInBocFVzZXJJZCI6MSwiaWF0IjoxNzk0MjM0ODUyLCJleHAiOjE3OTQ4Mzk2NTJ9.AzZrhqIENvBPpaUmoyn46NSUeOZtNo81VvwEIYQy02c";
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySUQiOjEsInBocFVzZXJJZCI6MSwiaWF0IjoxNzk0OTAyOTcyLCJleHAiOjE3OTU1MDc3NzJ9.DC_xHPbZh_FeEB3fNsi7j7zuhc3Rbo7NhuIBtsCdOOA";
 
 export const DEFAULT_LOCATION = {
   city: import.meta.env?.VITE_DEFAULT_CITY || "New Delhi",

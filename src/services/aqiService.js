@@ -2,14 +2,45 @@ import { AQI_API_BASE, DEFAULT_AQI_TOKEN, STORAGE_KEYS } from "../constants/api.
 import { logger } from "../utils/logger.js";
 
 /**
+ * Checks whether a JWT token has expired or is invalid
+ * Decodes the payload without external dependencies
+ */
+export function isTokenExpired(token) {
+  try {
+    if (!token || typeof token !== "string") return true;
+    const parts = token.split(".");
+    if (parts.length !== 3) return true;
+    const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join("")
+    );
+    const payload = JSON.parse(jsonPayload);
+    if (!payload.exp) return false;
+    // 60-second proactive buffer before wall-clock expiry
+    return Date.now() >= payload.exp * 1000 - 60000;
+  } catch {
+    return true;
+  }
+}
+
+/**
  * Manages Bearer Token with localStorage persistence & fallback
+ * Proactively verifies token expiration to eliminate stale 401 loops
  */
 function getToken() {
   try {
     if (typeof window !== "undefined" && window.localStorage) {
       const cached = window.localStorage.getItem(STORAGE_KEYS.AQI_TOKEN);
       if (cached && cached.startsWith("ey")) {
-        return cached;
+        if (!isTokenExpired(cached)) {
+          return cached;
+        }
+        // Purge expired cached token immediately
+        window.localStorage.removeItem(STORAGE_KEYS.AQI_TOKEN);
+        logger.warn("Purged expired telemetry token from local storage.");
       }
     }
   } catch (e) {
@@ -21,7 +52,11 @@ function getToken() {
 function saveToken(token) {
   try {
     if (typeof window !== "undefined" && window.localStorage) {
-      window.localStorage.setItem(STORAGE_KEYS.AQI_TOKEN, token);
+      if (token && !isTokenExpired(token)) {
+        window.localStorage.setItem(STORAGE_KEYS.AQI_TOKEN, token);
+      } else {
+        window.localStorage.removeItem(STORAGE_KEYS.AQI_TOKEN);
+      }
     }
   } catch (e) {
     logger.debug("Could not save token to localStorage:", e);
@@ -55,16 +90,29 @@ async function aqiFetch(path, params = {}, timeoutMs = 10000) {
     });
 
     if (response.status === 401) {
-      logger.warn("AQI token expired, attempting self-healing retry with bootstrap token...");
-      saveToken(DEFAULT_AQI_TOKEN);
-      const retryRes = await fetch(url.toString(), {
-        headers: { ...headers, Authorization: `Bearer ${DEFAULT_AQI_TOKEN}` },
-        signal: controller.signal
-      });
-      if (!retryRes.ok) {
-        throw new Error(`AQI API Unauthorized (${retryRes.status})`);
+      logger.warn("AQI API responded with 401 Unauthorized. Purging stale token...");
+      try {
+        if (typeof window !== "undefined" && window.localStorage) {
+          window.localStorage.removeItem(STORAGE_KEYS.AQI_TOKEN);
+        }
+      } catch {}
+
+      // If the current token was NOT the bootstrap token, retry once with the bootstrap token
+      if (token !== DEFAULT_AQI_TOKEN && !isTokenExpired(DEFAULT_AQI_TOKEN)) {
+        logger.info("Retrying telemetry request with fresh bootstrap token...");
+        const retryRes = await fetch(url.toString(), {
+          headers: { ...headers, Authorization: `Bearer ${DEFAULT_AQI_TOKEN}` },
+          signal: controller.signal
+        });
+        if (retryRes.ok) {
+          saveToken(DEFAULT_AQI_TOKEN);
+          return retryRes.json();
+        }
       }
-      return retryRes.json();
+
+      throw new Error(
+        "AQI API Unauthorized (401). Telemetry authorization token has expired or is invalid. Set VITE_AQI_TOKEN in .env.local to update."
+      );
     }
 
     if (!response.ok) {
