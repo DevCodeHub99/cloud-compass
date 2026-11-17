@@ -118,7 +118,7 @@ export function AQIHero({ aqiData, onLocationClick, locationLoading, theme = "li
               </span>
             </div>
 
-            {/* Clean Location Title (Eliminates repeated SEO scraper keywords) */}
+            {/* Clean Location Title */}
             <h2
               className={`text-xl sm:text-2xl font-black tracking-tight leading-tight ${
                 isDark ? "text-white" : "text-slate-900"
@@ -127,17 +127,12 @@ export function AQIHero({ aqiData, onLocationClick, locationLoading, theme = "li
               {locationInfo.title} Air Quality
             </h2>
 
-            {/* Subtitle without redundant city string duplication */}
-            <p className={`text-xs sm:text-sm font-medium ${isDark ? "text-slate-400" : "text-slate-500"}`}>
-              Real-time PM2.5 & PM10 ground-level pollution telemetry
-            </p>
-
-            {/* Station Subtitle with formatted distance units */}
-            <div className="flex flex-wrap items-center gap-2 text-xs pt-0.5">
+            {/* Station metadata with formatted distance units */}
+            <div className="flex flex-wrap items-center gap-2 text-xs pt-1">
               <span className={isDark ? "text-slate-300" : "text-slate-600"}>
                 Sensor:{" "}
                 <strong className={isDark ? "text-teal-400 font-bold" : "text-teal-700 font-bold"}>
-                  {locationInfo.stationName} Station
+                  {locationInfo.stationName}
                 </strong>
               </span>
 
