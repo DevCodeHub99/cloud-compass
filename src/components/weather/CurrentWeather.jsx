@@ -38,7 +38,7 @@ export const CurrentWeather = React.memo(function CurrentWeather({
 
   return (
     <div
-      className={`backdrop-blur-xl p-4 sm:p-6 rounded-3xl max-w-4xl mx-auto border transition-all duration-300 ${
+      className={`backdrop-blur-xl p-3.5 sm:p-6 lg:p-7 rounded-3xl max-w-4xl mx-auto border transition-all duration-300 ${
         isDark
           ? "bg-slate-900/95 text-white border-slate-800 shadow-2xl"
           : "bg-white text-slate-800 border-slate-200/90 shadow-xl shadow-slate-200/50"
@@ -65,13 +65,13 @@ export const CurrentWeather = React.memo(function CurrentWeather({
                 onClick={onLocationClick}
                 disabled={locationLoading}
                 title="Detect exact coordinates via GPS"
-                className={`inline-flex items-center space-x-1 text-xs font-semibold px-2.5 py-1 rounded-full border transition-all ${
+                className={`inline-flex items-center space-x-1.5 text-xs font-semibold px-2.5 py-1.5 min-h-[36px] min-w-[36px] rounded-full border transition-all cursor-pointer ${
                   isDark
                     ? "bg-slate-800 border-slate-700 text-teal-400 hover:bg-slate-700"
                     : "bg-teal-50 border-teal-200 text-teal-700 hover:bg-teal-100"
                 }`}
               >
-                <Navigation className={`w-3 h-3 ${locationLoading ? "animate-spin" : ""}`} />
+                <Navigation className={`w-3.5 h-3.5 ${locationLoading ? "animate-spin" : ""}`} />
                 <span className="hidden sm:inline">Locate</span>
               </button>
             )}
@@ -146,7 +146,7 @@ export const CurrentWeather = React.memo(function CurrentWeather({
 
           {/* Condition Details & Diurnal Range */}
           <div className="text-center sm:text-right">
-            <h3 className={`text-xl sm:text-2xl font-black capitalize ${isDark ? "text-white" : "text-slate-900"}`}>
+            <h3 className={`text-xl sm:text-2xl font-black capitalize [text-wrap:balance] ${isDark ? "text-white" : "text-slate-900"}`}>
               {current.condition}
             </h3>
             {current.description && current.description.toLowerCase() !== current.condition.toLowerCase() && (
@@ -166,7 +166,7 @@ export const CurrentWeather = React.memo(function CurrentWeather({
       {/* Quick Micro-Stats Strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
         <div
-          className={`p-3 rounded-xl border flex items-center space-x-2.5 ${
+          className={`p-2.5 sm:p-3 rounded-xl border flex items-center space-x-2.5 min-h-[58px] sm:min-h-[64px] ${
             isDark ? "bg-slate-800/60 border-slate-700/60" : "bg-slate-50 border-slate-200/70"
           }`}
         >
@@ -182,7 +182,7 @@ export const CurrentWeather = React.memo(function CurrentWeather({
         </div>
 
         <div
-          className={`p-3 rounded-xl border flex items-center space-x-2.5 ${
+          className={`p-2.5 sm:p-3 rounded-xl border flex items-center space-x-2.5 min-h-[58px] sm:min-h-[64px] ${
             isDark ? "bg-slate-800/60 border-slate-700/60" : "bg-slate-50 border-slate-200/70"
           }`}
         >
@@ -198,7 +198,7 @@ export const CurrentWeather = React.memo(function CurrentWeather({
         </div>
 
         <div
-          className={`p-3 rounded-xl border flex items-center space-x-2.5 ${
+          className={`p-2.5 sm:p-3 rounded-xl border flex items-center space-x-2.5 min-h-[58px] sm:min-h-[64px] ${
             isDark ? "bg-slate-800/60 border-slate-700/60" : "bg-slate-50 border-slate-200/70"
           }`}
         >
@@ -214,7 +214,7 @@ export const CurrentWeather = React.memo(function CurrentWeather({
         </div>
 
         <div
-          className={`p-3 rounded-xl border flex items-center space-x-2.5 ${
+          className={`p-2.5 sm:p-3 rounded-xl border flex items-center space-x-2.5 min-h-[58px] sm:min-h-[64px] ${
             isDark ? "bg-slate-800/60 border-slate-700/60" : "bg-slate-50 border-slate-200/70"
           }`}
         >

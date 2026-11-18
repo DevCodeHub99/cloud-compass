@@ -471,13 +471,13 @@ export function App() {
 
   return (
     <div
-      className={`min-h-screen p-3 md:p-6 transition-colors duration-300 ${
+      className={`min-h-screen p-3 md:p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] transition-colors duration-300 ${
         theme === "dark" ? "dark bg-slate-950/60 text-slate-100" : "light bg-transparent text-slate-900"
       }`}
     >
       {/* Header Container */}
       <header
-        className={`p-4 sm:p-6 shadow-xl rounded-3xl max-w-4xl mx-auto transition-all duration-300 border ${
+        className={`p-3.5 sm:p-6 lg:p-7 shadow-xl rounded-3xl max-w-4xl mx-auto transition-all duration-300 border ${
           theme === "dark"
             ? "bg-gradient-to-r from-slate-900 via-teal-950 to-slate-900 border-slate-800 text-white shadow-2xl shadow-teal-950/40"
             : "bg-gradient-to-r from-teal-500 via-teal-600 to-cyan-600 border-teal-400/30 text-white shadow-xl shadow-teal-600/20"
@@ -524,7 +524,7 @@ export function App() {
             type="button"
             onClick={() => handleModeChange("aqi")}
             aria-pressed={mode === "aqi"}
-            className={`relative z-10 flex-1 flex items-center justify-center space-x-2 py-2.5 px-4 min-h-[42px] rounded-full text-xs sm:text-sm font-black transition-colors duration-200 cursor-pointer outline-none select-none ${
+            className={`relative z-10 flex-1 flex items-center justify-center space-x-2 py-2.5 px-4 min-h-[44px] rounded-full text-xs sm:text-sm font-black transition-colors duration-200 cursor-pointer outline-none select-none ${
               mode === "aqi"
                 ? theme === "dark"
                   ? "text-white"
@@ -554,7 +554,7 @@ export function App() {
             type="button"
             onClick={() => handleModeChange("weather")}
             aria-pressed={mode === "weather"}
-            className={`relative z-10 flex-1 flex items-center justify-center space-x-2 py-2.5 px-4 min-h-[42px] rounded-full text-xs sm:text-sm font-black transition-colors duration-200 cursor-pointer outline-none select-none ${
+            className={`relative z-10 flex-1 flex items-center justify-center space-x-2 py-2.5 px-4 min-h-[44px] rounded-full text-xs sm:text-sm font-black transition-colors duration-200 cursor-pointer outline-none select-none ${
               mode === "weather"
                 ? theme === "dark"
                   ? "text-white"
@@ -590,7 +590,7 @@ export function App() {
             type="button"
             onClick={() => setError(null)}
             aria-label="Dismiss error notification"
-            className="text-rose-500 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-200 p-1 rounded-lg transition-colors cursor-pointer"
+            className="text-rose-500 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-200 p-2 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-lg transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>

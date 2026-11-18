@@ -12,7 +12,7 @@ export function Header({ theme = "light", onToggleTheme }) {
         <div className="flex items-center space-x-2.5">
           <Compass className="w-7 h-7 sm:w-8 sm:h-8 text-yellow-300 animate-pulse flex-shrink-0" />
           <div>
-            <h1 className="text-xl sm:text-2xl font-black tracking-wider text-white drop-shadow-md leading-tight">
+            <h1 className="text-xl sm:text-2xl font-black tracking-wider text-white drop-shadow-md leading-tight [text-wrap:balance]">
               CloudCompass
             </h1>
             <p className="text-[11px] sm:text-xs text-teal-100/90 font-medium hidden sm:block">
@@ -27,7 +27,7 @@ export function Header({ theme = "light", onToggleTheme }) {
           onClick={onToggleTheme}
           aria-label={isDark ? "Switch to Light Theme" : "Switch to Dark Theme"}
           title={isDark ? "Switch to Light Theme" : "Switch to Dark Theme"}
-          className="relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 cursor-pointer select-none outline-none active:scale-90 bg-black/20 hover:bg-black/35 dark:bg-black/40 dark:hover:bg-black/60 border border-white/25 hover:border-white/40 backdrop-blur-xl shadow-md hover:shadow-lg group"
+          className="relative w-11 h-11 min-w-[44px] min-h-[44px] rounded-full flex items-center justify-center transition-all duration-300 cursor-pointer select-none outline-none active:scale-90 bg-black/20 hover:bg-black/35 dark:bg-black/40 dark:hover:bg-black/60 border border-white/25 hover:border-white/40 backdrop-blur-xl shadow-md hover:shadow-lg group"
         >
           <div className="relative w-5 h-5 flex items-center justify-center">
             {/* Sun Icon (Visible in Light Mode, smoothly spins & scales out on switch) */}

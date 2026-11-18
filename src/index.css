@@ -23,6 +23,11 @@ body {
   transition: background 0.4s ease, color 0.4s ease;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-wrap: break-word;
+}
+
+html {
+  scroll-padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
 }
 
 /* Global brand selection highlight: Eliminates harsh blue browser selection */

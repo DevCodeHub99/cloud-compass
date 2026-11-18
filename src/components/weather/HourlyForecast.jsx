@@ -108,7 +108,7 @@ export const HourlyForecast = React.memo(function HourlyForecast({ hourly, advis
 
   return (
     <section
-      className={`backdrop-blur-xl p-4 sm:p-6 rounded-3xl max-w-4xl mx-auto border transition-all duration-300 relative ${
+      className={`content-visibility-auto backdrop-blur-xl p-3.5 sm:p-6 lg:p-7 rounded-3xl max-w-4xl mx-auto border transition-all duration-300 relative ${
         isDark
           ? "bg-slate-900/95 text-white border-slate-800 shadow-2xl"
           : "bg-white text-slate-800 border-slate-200/90 shadow-xl shadow-slate-200/50"
@@ -196,7 +196,7 @@ export const HourlyForecast = React.memo(function HourlyForecast({ hourly, advis
             type="button"
             onClick={() => handleScroll("left")}
             aria-label="Scroll left"
-            className={`absolute left-0 top-1/2 -translate-y-1/2 z-20 w-8 h-10 rounded-r-xl flex items-center justify-center transition-all duration-200 shadow-lg cursor-pointer ${
+            className={`absolute left-0 top-1/2 -translate-y-1/2 z-20 w-9 h-11 rounded-r-xl flex items-center justify-center transition-all duration-200 shadow-lg cursor-pointer ${
               isDark
                 ? "bg-slate-800/90 text-white border-y border-r border-slate-700 hover:bg-slate-700"
                 : "bg-white/95 text-slate-800 border-y border-r border-slate-200 hover:bg-slate-100"
@@ -212,7 +212,7 @@ export const HourlyForecast = React.memo(function HourlyForecast({ hourly, advis
             type="button"
             onClick={() => handleScroll("right")}
             aria-label="Scroll right"
-            className={`absolute right-0 top-1/2 -translate-y-1/2 z-20 w-8 h-10 rounded-l-xl flex items-center justify-center transition-all duration-200 shadow-lg cursor-pointer ${
+            className={`absolute right-0 top-1/2 -translate-y-1/2 z-20 w-9 h-11 rounded-l-xl flex items-center justify-center transition-all duration-200 shadow-lg cursor-pointer ${
               isDark
                 ? "bg-slate-800/90 text-white border-y border-l border-slate-700 hover:bg-slate-700"
                 : "bg-white/95 text-slate-800 border-y border-l border-slate-200 hover:bg-slate-100"

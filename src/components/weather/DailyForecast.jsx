@@ -18,7 +18,7 @@ export const DailyForecast = React.memo(function DailyForecast({ daily, currentT
 
   return (
     <section
-      className={`content-visibility-auto backdrop-blur-xl p-4 sm:p-6 rounded-3xl max-w-4xl mx-auto border transition-all duration-300 ${
+      className={`content-visibility-auto backdrop-blur-xl p-3.5 sm:p-6 lg:p-7 rounded-3xl max-w-4xl mx-auto border transition-all duration-300 ${
         isDark
           ? "bg-slate-900/95 text-white border-slate-800 shadow-2xl"
           : "bg-white text-slate-800 border-slate-200/90 shadow-xl shadow-slate-200/50"
@@ -54,12 +54,12 @@ export const DailyForecast = React.memo(function DailyForecast({ daily, currentT
           return (
             <div
               key={idx}
-              className={`py-3 flex items-center justify-between text-xs sm:text-sm transition-all duration-200 rounded-xl px-2 sm:px-3 cursor-pointer group/row ${
+              className={`py-3 flex items-center justify-between text-xs sm:text-sm transition-all duration-200 rounded-xl px-1.5 sm:px-3 cursor-pointer group/row ${
                 isDark ? "hover:bg-slate-800/60" : "hover:bg-slate-100/70"
               }`}
             >
               {/* Day Name */}
-              <div className="w-16 sm:w-20 flex-shrink-0">
+              <div className="w-14 sm:w-20 flex-shrink-0">
                 <span className={`font-bold block transition-colors ${isToday ? (isDark ? "text-teal-300 font-black" : "text-teal-700 font-black") : isDark ? "text-white group-hover/row:text-teal-300" : "text-slate-900 group-hover/row:text-teal-700"}`}>
                   {isToday ? "Today" : item.dayName}
                 </span>
@@ -69,16 +69,16 @@ export const DailyForecast = React.memo(function DailyForecast({ daily, currentT
               </div>
 
               {/* Icon & Pop */}
-              <div className="flex items-center space-x-2 w-28 sm:w-36 flex-shrink-0">
+              <div className="flex items-center space-x-1.5 sm:space-x-2 w-14 xs:w-28 sm:w-36 flex-shrink-0">
                 <img
                   src={item.icon || "https://apiserver.aqi.in/uploads/weather-icons/1.svg"}
                   alt={item.condition}
-                  className="w-8 h-8 sm:w-9 sm:h-9 drop-shadow-sm select-none transition-transform duration-300 group-hover/row:scale-110"
+                  className="w-8 h-8 sm:w-9 sm:h-9 drop-shadow-sm select-none transition-transform duration-300 group-hover/row:scale-110 shrink-0"
                   onError={(e) => {
                     e.target.src = "https://apiserver.aqi.in/uploads/weather-icons/1.svg";
                   }}
                 />
-                <div className="truncate">
+                <div className="truncate hidden xs:block">
                   <span className={`block font-semibold capitalize truncate text-xs ${isDark ? "text-slate-200" : "text-slate-700"}`}>
                     {item.condition}
                   </span>
@@ -92,9 +92,9 @@ export const DailyForecast = React.memo(function DailyForecast({ daily, currentT
               </div>
 
               {/* Temperature Range Bar */}
-              <div className="flex items-center space-x-2 sm:space-x-3 flex-1 max-w-[280px] sm:max-w-[340px] ml-2">
+              <div className="flex items-center space-x-1.5 sm:space-x-3 flex-1 min-w-[90px] max-w-[280px] sm:max-w-[340px] ml-1 sm:ml-2">
                 {/* Min Temp */}
-                <span className={`w-8 text-right font-bold text-xs ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+                <span className={`w-7 sm:w-8 text-right font-bold text-xs ${isDark ? "text-slate-400" : "text-slate-500"}`}>
                   {item.temp_min}&deg;
                 </span>
 

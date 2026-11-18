@@ -206,12 +206,12 @@ export function SearchBar({
                             role="option"
                             aria-selected={isSelected}
                             onMouseDown={() => handleSelectSuggestion(item)}
-                            className={`flex items-center justify-between p-2.5 rounded-lg cursor-pointer transition-colors ${
+                            className={`flex items-center justify-between p-2.5 min-h-[44px] rounded-lg cursor-pointer transition-colors ${
                               isSelected
                                 ? isDark
-                                  ? "bg-slate-800 ring-1 ring-teal-500/50"
-                                  : "bg-teal-50 ring-1 ring-teal-500/50"
-                                : "hover:bg-teal-50 dark:hover:bg-slate-800/80"
+                                ? "bg-slate-800 ring-1 ring-teal-500/50"
+                                : "bg-teal-50 ring-1 ring-teal-500/50"
+                              : "hover:bg-teal-50 dark:hover:bg-slate-800/80"
                             }`}
                           >
                             <div className="flex items-center space-x-2 text-left truncate pr-2">
@@ -276,7 +276,7 @@ export function SearchBar({
                           role="option"
                           aria-selected={isSelected}
                           onMouseDown={() => handleSelectHistory(item)}
-                          className={`flex items-center space-x-2 p-2.5 rounded-lg cursor-pointer text-sm transition-colors ${
+                          className={`flex items-center space-x-2 p-2.5 min-h-[44px] rounded-lg cursor-pointer text-sm transition-colors ${
                             isSelected
                               ? isDark
                                 ? "bg-slate-800 text-white ring-1 ring-teal-500/50"
@@ -303,7 +303,7 @@ export function SearchBar({
           disabled={locationLoading}
           aria-label="Use my current GPS location"
           title="Use my current GPS location"
-          className="p-3 bg-white/20 hover:bg-white/30 text-white rounded-full transition-all duration-200 shadow-md flex items-center justify-center backdrop-blur-sm active:scale-95 disabled:opacity-60 cursor-pointer"
+          className="w-11 h-11 min-w-[44px] min-h-[44px] bg-white/20 hover:bg-white/30 text-white rounded-full transition-all duration-200 shadow-md flex items-center justify-center backdrop-blur-sm active:scale-95 disabled:opacity-60 cursor-pointer"
         >
           {locationLoading ? (
             <Loader2 className="w-5 h-5 animate-spin" />
@@ -323,7 +323,7 @@ export function SearchBar({
             key={city}
             type="button"
             onClick={() => onSearch(city)}
-            className={`px-3 py-1 rounded-full text-xs font-semibold transition-all flex-shrink-0 backdrop-blur-sm border select-none outline-none cursor-pointer active:scale-95 shadow-xs min-h-[30px] inline-flex items-center justify-center ${
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all flex-shrink-0 backdrop-blur-sm border select-none outline-none cursor-pointer active:scale-95 shadow-xs min-h-[32px] inline-flex items-center justify-center ${
               isDark
                 ? "bg-slate-800/80 hover:bg-slate-700 text-slate-200 border-slate-700/60"
                 : "bg-white/20 hover:bg-white/35 text-white border-white/25 shadow-sm"
