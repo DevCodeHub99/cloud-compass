@@ -82,7 +82,7 @@ function PollutantIcon({ type, label, isDark }) {
   );
 }
 
-export function PollutantGrid({ iaqi = {}, stationName = "", theme = "light" }) {
+export const PollutantGrid = React.memo(function PollutantGrid({ iaqi = {}, stationName = "", theme = "light" }) {
   const isDark = theme === "dark";
 
   // Strictly filter only pollutants that are actively monitored and have valid numeric telemetry
@@ -309,6 +309,6 @@ export function PollutantGrid({ iaqi = {}, stationName = "", theme = "light" }) 
       </div>
     </div>
   );
-}
+});
 
 export default PollutantGrid;

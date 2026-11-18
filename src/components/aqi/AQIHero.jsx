@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   getCPCBBadge,
   getUSEPABadge,
@@ -33,7 +33,7 @@ const EPA_SPECTRUM_BANDS = [
   { label: "Hazardous", shortLabel: "Hazardous", range: "301–500+" }
 ];
 
-export function AQIHero({ aqiData, onLocationClick, locationLoading, theme = "light" }) {
+export const AQIHero = React.memo(function AQIHero({ aqiData, onLocationClick, locationLoading, theme = "light" }) {
   const isDark = theme === "dark";
   const [standard, setStandard] = useState("cpcb"); // "cpcb" | "usepa"
   const [hoverAQI, setHoverAQI] = useState(null);
@@ -65,12 +65,35 @@ export function AQIHero({ aqiData, onLocationClick, locationLoading, theme = "li
 
   const spectrumBands = standard === "cpcb" ? CPCB_SPECTRUM_BANDS : EPA_SPECTRUM_BANDS;
 
-  const handleSpectrumTouch = (e) => {
-    if (!e.touches || e.touches.length === 0) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const pct = Math.max(0, Math.min(1, (e.touches[0].clientX - rect.left) / rect.width));
-    setHoverAQI(Math.round(pct * 500));
-  };
+  const rafIdRef = useRef(null);
+
+  const updateScrubAQI = useCallback((clientX, rect) => {
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+    rafIdRef.current = requestAnimationFrame(() => {
+      const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+      setHoverAQI(Math.round(pct * 500));
+    });
+  }, []);
+
+  const clearScrubAQI = useCallback(() => {
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+    setHoverAQI(null);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+    };
+  }, []);
+
+  const handleSpectrumTouch = useCallback(
+    (e) => {
+      if (!e.touches || e.touches.length === 0) return;
+      const rect = e.currentTarget.getBoundingClientRect();
+      updateScrubAQI(e.touches[0].clientX, rect);
+    },
+    [updateScrubAQI]
+  );
 
   return (
     <div className="max-w-4xl mx-auto space-y-4">
@@ -386,13 +409,12 @@ export function AQIHero({ aqiData, onLocationClick, locationLoading, theme = "li
               <div
                 onMouseMove={(e) => {
                   const rect = e.currentTarget.getBoundingClientRect();
-                  const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-                  setHoverAQI(Math.round(pct * 500));
+                  updateScrubAQI(e.clientX, rect);
                 }}
-                onMouseLeave={() => setHoverAQI(null)}
+                onMouseLeave={clearScrubAQI}
                 onTouchStart={handleSpectrumTouch}
                 onTouchMove={handleSpectrumTouch}
-                onTouchEnd={() => setHoverAQI(null)}
+                onTouchEnd={clearScrubAQI}
                 className={`relative w-full h-4 rounded-full shadow-inner cursor-crosshair group/track select-none touch-none ${
                   isDark ? "bg-slate-800" : "bg-slate-200"
                 }`}
@@ -590,6 +612,6 @@ export function AQIHero({ aqiData, onLocationClick, locationLoading, theme = "li
       </div>
     </div>
   );
-}
+});
 
 export default AQIHero;

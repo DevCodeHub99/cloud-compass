@@ -49,3 +49,5 @@ export function AQIView({
     </div>
   );
 }
+
+export default AQIView;

@@ -7,10 +7,10 @@ export const DEFAULT_AQI_TOKEN =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySUQiOjEsInBocFVzZXJJZCI6MSwiaWF0IjoxNzk0OTAyOTcyLCJleHAiOjE3OTU1MDc3NzJ9.DC_xHPbZh_FeEB3fNsi7j7zuhc3Rbo7NhuIBtsCdOOA";
 
 export const DEFAULT_LOCATION = {
-  city: import.meta.env?.VITE_DEFAULT_CITY || "New Delhi",
-  country: import.meta.env?.VITE_DEFAULT_COUNTRY || "IN",
-  lat: Number(import.meta.env?.VITE_DEFAULT_LAT) || 28.6139,
-  lon: Number(import.meta.env?.VITE_DEFAULT_LON) || 77.209,
+  city: "New Delhi",
+  country: "IN",
+  lat: 28.6139,
+  lon: 77.209,
   slug: "india/delhi/new-delhi"
 };
 
@@ -18,5 +18,6 @@ export const STORAGE_KEYS = {
   SEARCH_HISTORY: "cloudcompass_search_history",
   APP_MODE: "cloudcompass_app_mode",
   AQI_TOKEN: "cloudcompass_aqi_token",
-  THEME: "cloudcompass_theme"
+  THEME: "cloudcompass_theme",
+  LAST_LOCATION: "cloudcompass_last_location"
 };

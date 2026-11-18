@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import {
   BarChart3,
   ArrowDownRight,
@@ -31,26 +31,42 @@ function formatShortHour(dateStr, idx, total) {
   }
 }
 
-export function TrendChart({ trendData, theme = "light" }) {
+export const TrendChart = React.memo(function TrendChart({ trendData, theme = "light" }) {
   const isDark = theme === "dark";
   const [hoverIndex, setHoverIndex] = useState(null);
   const containerRef = useRef(null);
+  const rafIdRef = useRef(null);
 
   const values = trendData?.averageArray || [];
   const count = values.length;
 
-  // Touch & pointer scrub navigation - unconditional hook declaration
+  // Touch & pointer scrub navigation - with requestAnimationFrame throttling
   const handlePointerScrub = useCallback(
     (clientX) => {
       if (!containerRef.current || count === 0) return;
-      const rect = containerRef.current.getBoundingClientRect();
-      const relativeX = Math.max(0, Math.min(rect.width, clientX - rect.left));
-      const ratio = relativeX / rect.width;
-      const closestIdx = Math.floor(ratio * count);
-      setHoverIndex(Math.max(0, Math.min(count - 1, closestIdx)));
+      if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = requestAnimationFrame(() => {
+        if (!containerRef.current) return;
+        const rect = containerRef.current.getBoundingClientRect();
+        const relativeX = Math.max(0, Math.min(rect.width, clientX - rect.left));
+        const ratio = relativeX / rect.width;
+        const closestIdx = Math.floor(ratio * count);
+        setHoverIndex(Math.max(0, Math.min(count - 1, closestIdx)));
+      });
     },
     [count]
   );
+
+  const clearHover = useCallback(() => {
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+    setHoverIndex(null);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+    };
+  }, []);
 
   if (!trendData || !trendData.averageArray || trendData.averageArray.length === 0) {
     return null;
@@ -238,9 +254,10 @@ export function TrendChart({ trendData, theme = "light" }) {
       <div
         ref={containerRef}
         onMouseMove={handleMouseMove}
-        onMouseLeave={() => setHoverIndex(null)}
+        onMouseLeave={clearHover}
         onTouchStart={handleTouchMove}
         onTouchMove={handleTouchMove}
+        onTouchEnd={clearHover}
         className="relative w-full cursor-pointer select-none touch-none py-1"
         style={{ touchAction: "none" }}
       >
@@ -406,6 +423,6 @@ export function TrendChart({ trendData, theme = "light" }) {
       </div>
     </div>
   );
-}
+});
 
 export default TrendChart;

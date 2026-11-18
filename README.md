@@ -12,21 +12,85 @@
 
 ---
 
-## Highlights
+## Architecture & System Overview
 
-- **Single Unified Data Pipeline**: Ingests both air quality (PM2.5, PM10, TVOC, Noise) and weather telemetry (`temp_c`, `humidity`, `uv`, `pressure_mb`, `wind_kph`, `vis_km`) in a single request with zero secondary API dependencies.
-- **Dual Environmental Modes**: Instant switching between **Air Quality (AQI)** and **Weather Forecast** via a fluid segmented capsule controller.
-- **Air Quality Intelligence**:
-  - Live comparison between **Indian CPCB** (0–500) and **US EPA** standards.
-  - Interactive 24-hour pollution histogram with hover and touch scrub navigation.
-  - Nearest physical sensor discovery with distance calculation.
-- **Meteorological Forecast**:
-  - Diurnal high/low projections, feels-like temperature, and narrative atmospheric advisory.
-  - Continuous 24-hour hourly temperature curve with solar rise/set markers.
-  - Real-time **NOAA solar cycle engine** tracking dawn, sunrise, solar noon, sunset, dusk, and live sun elevation.
+```mermaid
+flowchart TD
+    subgraph Client["Browser Client (React 18 SPA)"]
+        User["User Entry / Mount"]
+        LocEngine["Progressive Location Engine"]
+        Search["Accessible WAI-ARIA SearchBar"]
+        ModeCtrl["Segmented Mode Capsule"]
+        
+        subgraph Views["Dynamic Route-Split Views (React.lazy)"]
+            AQI["AQIView (Pollutants, 24h Trend, Nearby Stations)"]
+            Weather["WeatherView (Diurnal Temp, SunTimeline, 5-Day Outlook)"]
+        end
+    end
+
+    subgraph LocationResolution["Multi-Tier Location Discovery"]
+        Edge["Tier 1: Vercel Edge CDN Headers (/api/geo)"]
+        ClientIP["Tier 2: Public Client IP Geolocation (freeipapi / ipwho.is)"]
+        Timezone["Tier 3: Browser IANA Timezone Heuristic (0ms, Offline)"]
+        Storage["Tier 4: LocalStorage Session Memory (cloudcompass_last_location)"]
+        GPS["Tier 5: High-Precision Browser GPS Upgrade"]
+    end
+
+    subgraph DataPipeline["Telemetry Ingestion & Mathematics"]
+        API["AQI.in Telemetry Cluster"]
+        Solar["NOAA Solar Celestial Engine (Timezone-Aware)"]
+        DewPoint["Magnus-Tetens Atmospheric Math"]
+        Standards["CPCB & US EPA Dual Standards"]
+    end
+
+    User --> LocEngine
+    LocEngine --> Storage & Edge & ClientIP & Timezone
+    LocEngine -. If Permitted .-> GPS
+    Search --> LocEngine
+    
+    LocEngine --> API
+    API --> Solar & DewPoint & Standards
+    Solar & DewPoint & Standards --> ModeCtrl
+    
+    ModeCtrl -->|Mode = 'weather'| Weather
+    ModeCtrl -->|Mode = 'aqi'| AQI
+```
+
+---
+
+## Core Capabilities
+
+### 1. Multi-Tier Progressive Location Discovery
+- **Zero-Setup Regional Discovery**: Automatically determines the visitor's city and geographic coordinates on first load without demanding invasive permissions or defaulting to a hardcoded city.
+- **Vercel Edge Integration ([`api/geo.js`](file:///api/geo.js))**: Reads `x-vercel-ip-city` and coordinates directly from connection headers at edge edge points with 0ms third-party latency.
+- **Client IP & IANA Timezone Heuristic**: Falls back to CORS IP endpoints (`freeipapi.com`, `ipwho.is`) and browser timezone extraction (`Intl.DateTimeFormat`) for 100% offline coverage.
+- **Smooth GPS Upgrade**: Prompts for device GPS in the background. When approved, seamlessly refines coordinates from broad city centers to the closest neighborhood physical sensor.
+- **Session Memory**: Caches the active location to `localStorage` (`cloudcompass_last_location`) for instantaneous sub-millisecond restoration on subsequent visits.
+
+### 2. Dual Environmental Operational Modes
+- **Weather Forecast Mode**:
+  - Live observation, diurnal high/low projections, feels-like temperature, and atmospheric advisory.
+  - Continuous 24-hour temperature curve with solar rise and set markers.
+  - **NOAA Solar Celestial Engine**: High-precision calculation of dawn, sunrise, solar noon, sunset, dusk, daylight duration, and real-time sun elevation trajectory, formatted according to target longitude timezone offsets.
   - 5-day outlook with horizontal temperature distribution range bars.
   - 6-card meteorological grid: UV index, Wind & Gusts, Humidity & Dew Point, Barometric Pressure, Visibility, and Cloud Cover.
-- **Production-Grade Resilience**: Built-in React Error Boundary, request timeout abortion, self-healing token refresh, in-memory storage fallback, and theme pre-hydration.
+- **Air Quality (AQI) Mode**:
+  - Live dual-standard comparison between **Indian CPCB** (0–500) and **US EPA** scales.
+  - Interactive 24-hour pollution histogram with frame-synced 60fps pointer scrubbing (`requestAnimationFrame`).
+  - Active pollutant cards with status accents (PM2.5, PM10, TVOC, CO, Noise).
+  - Nearest physical sensor discovery with Haversine distance calculation.
+  - Real-time polluted cities leaderboard.
+
+### 3. Production Performance & Optimization
+- **Route-Level Code Splitting**: View containers (`WeatherView`, `AQIView`) are dynamically loaded via `React.lazy` and wrapped in `<Suspense>`.
+- **Vendor Chunking**: External libraries (`react`, `react-dom`, `lucide-react`) are isolated into immutable Rollup vendor chunks for aggressive edge caching.
+- **Micro-Bundle Footprint**: Initial application entry is reduced to **~17 kB** gzipped; total compressed JavaScript is **~80 kB** gzipped across all modules.
+- **Component Memoization**: All leaf presentation components are wrapped in `React.memo` to eliminate unnecessary re-renders during state transitions.
+
+### 4. Accessibility (a11y) & UX Standards
+- **WAI-ARIA Combobox Search**: Full keyboard navigation (`ArrowDown`, `ArrowUp`, `Enter`, `Escape`) across autocomplete suggestions and search history.
+- **Screen Reader Readiness**: Clear `aria-label`, `role="listbox"`, `role="option"`, and `aria-activedescendant` bindings across input controls and clear buttons.
+- **FOUC Prevention**: Inline pre-hydration script in [`index.html`](file:///index.html) ensures zero Flash of Unstyled Content on theme hydration.
 
 ---
 
@@ -52,7 +116,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ### Production Build
 ```bash
-# Build optimized static assets
+# Build optimized static assets with code splitting
 npm run build
 
 # Preview production build locally
@@ -65,7 +129,7 @@ npm run preview
 
 CloudCompass is pre-configured with production-ready zero-configuration defaults and works immediately without any `.env` file.
 
-To customize API endpoints or default coordinates, copy `.env.example` to `.env.local`:
+To customize API endpoints or telemetry credentials, copy `.env.example` to `.env.local`:
 
 ```bash
 cp .env.example .env.local
@@ -73,12 +137,27 @@ cp .env.example .env.local
 
 | Variable | Default Value | Description |
 | :--- | :--- | :--- |
-| `VITE_AQI_API_BASE` | `https://apiserver.aqi.in` | Base endpoint for the AQI.in telemetry cluster |
-| `VITE_DEFAULT_CITY` | `"New Delhi"` | Fallback city name if geolocation is declined |
-| `VITE_DEFAULT_COUNTRY` | `"IN"` | Fallback country code |
-| `VITE_DEFAULT_LAT` | `28.6139` | Fallback latitude coordinate |
-| `VITE_DEFAULT_LON` | `77.2090` | Fallback longitude coordinate |
+| `VITE_AQI_API_BASE` | `https://apiserver.aqi.in` | Base endpoint for the AQI.in telemetry cluster or custom reverse proxy |
+| `VITE_AQI_TOKEN` | Pre-bundled bootstrap token | Optional custom or rotated JWT Bearer token for telemetry |
 | `VITE_LOG_LEVEL` | `"warn"` (prod) / `"debug"` (dev) | Minimum logging threshold: `debug` \| `info` \| `warn` \| `error` \| `none` |
+
+---
+
+## Build Diagnostics & Bundle Distribution
+
+```text
+vite v6.4.6 building for production...
+✓ 1606 modules transformed.
+dist/index.html                        8.03 kB │ gzip:  2.71 kB
+dist/assets/bg-img-D-nDYq9F.avif      64.50 kB
+dist/assets/index-DN9aImng.css        60.49 kB │ gzip: 10.04 kB
+dist/assets/icons-C-QR6h7-.js         22.79 kB │ gzip:  6.11 kB
+dist/assets/WeatherView-CKKvyVTD.js   42.14 kB │ gzip:  9.40 kB
+dist/assets/AQIView-BufGZgas.js       43.74 kB │ gzip:  9.77 kB
+dist/assets/index-CwLqAQ0d.js         49.96 kB │ gzip: 17.46 kB
+dist/assets/vendor-CbbLAKBo.js       134.66 kB │ gzip: 43.22 kB
+✓ built in 5.44s
+```
 
 ---
 
@@ -92,7 +171,10 @@ Weather-Forecast-Application/
 ├── package.json                 # Project dependencies and npm scripts
 ├── postcss.config.js            # PostCSS configuration
 ├── tailwind.config.js           # Tailwind theme and dark-mode setup
-├── vite.config.js               # Vite bundler configuration
+├── vercel.json                  # Edge routing, caching & API rewrites
+├── vite.config.js               # Bundler configuration & vendor chunking
+├── api/
+│   └── geo.js                   # Vercel Edge CDN IP geolocation handler
 └── src/
     ├── main.jsx                 # App root with ErrorBoundary wrapper
     ├── App.jsx                  # State orchestration & mode synchronization
@@ -108,19 +190,20 @@ Weather-Forecast-Application/
     │   └── weatherUtils.js      # Dew point, UV scale, wind direction & comfort math
     ├── services/
     │   ├── aqiService.js        # AQI.in client, timeout abortion & geo math
-    │   └── weatherService.js    # Telemetry normalization & meteorological forecast
+    │   ├── weatherService.js    # Telemetry normalization & meteorological forecast
+    │   └── locationDetection.js # Multi-tier Edge/IP/Timezone progressive location discovery
     ├── hooks/
     │   ├── useGeolocation.js    # Browser GPS hook with descriptive error codes
     │   └── useLocalStorage.js   # Persistent storage hook with in-memory fallback
     └── components/
         ├── common/
         │   ├── Header.jsx       # Branding & circular morphing theme toggle
-        │   ├── SearchBar.jsx    # Autocomplete location search & recent history
+        │   ├── SearchBar.jsx    # Accessible WAI-ARIA location search & history
         │   ├── Footer.jsx       # Responsive footer with attribution
         │   ├── Loader.jsx       # Adaptive dark/light telemetry loader
         │   └── ErrorBoundary.jsx# Fallback UI preventing white-screen crashes
         ├── aqi/
-        │   ├── AQIView.jsx      # AQI mode layout container
+        │   ├── AQIView.jsx      # Lazy-loaded AQI mode container
         │   ├── AQIHero.jsx      # Master AQI card, spectrum slider & micro-weather
         │   ├── PollutantGrid.jsx# Active pollutant cards with status accents
         │   ├── TrendChart.jsx   # 24-hour interactive pollution bar histogram
@@ -128,7 +211,7 @@ Weather-Forecast-Application/
         │   ├── SensorWeather.jsx# On-site meteorological observations
         │   └── TopPollutedCities.jsx # Live polluted cities leaderboard
         └── weather/
-            ├── WeatherView.jsx        # Weather mode layout container
+            ├── WeatherView.jsx        # Lazy-loaded Weather mode container
             ├── CurrentWeather.jsx     # Current observation & diurnal temperature
             ├── HourlyForecast.jsx     # 24-hour timeline with solar markers
             ├── SunTimeline.jsx        # Solar trajectory with real-time sun position
@@ -163,7 +246,7 @@ CloudCompass features an enterprise logging and telemetry event bus ([`src/utils
 ## Architectural Principles
 
 - **Single Source of Truth**: 100% of telemetry originates from physical sensors through `aqi.in`.
-- **KISS & YAGNI**: Clean React 18 state management without external store bloat (~78 kB gzipped bundle).
+- **KISS & YAGNI**: Clean React 18 state management without external store bloat (~17 kB gzipped core bundle).
 - **DRY Design**: Reusable hooks (`useLocalStorage`, `useGeolocation`), centralized mathematical utilities (`solarCalculator`, `weatherUtils`), and modular components.
 - **Robust Error Handling**: Non-blocking `try/catch` fallbacks, request timeout abortion (`AbortController`), and user-facing error boundaries.
 - **Repository Hygiene**: Version control remains free of build outputs (`dist/`), temporary scripts, or local secret files.

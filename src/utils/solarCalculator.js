@@ -4,13 +4,26 @@
  * daylight duration, and real-time sun elevation trajectory from geographic coordinates.
  */
 
-export function calculateSolarCycle(lat = 28.6139, lon = 77.2090, refDate = new Date()) {
+export function calculateSolarCycle(lat = 28.6139, lon = 77.2090, refDate = new Date(), tzOffsetMinutes = null) {
   const rad = Math.PI / 180;
   const deg = 180 / Math.PI;
 
   const validLat = Number(lat) || 28.6139;
   const validLon = Number(lon) || 77.2090;
   const now = refDate instanceof Date ? refDate : new Date(refDate);
+
+  // Derive local standard timezone offset in minutes:
+  // If explicitly provided, use it. Otherwise derive from geographic coordinates.
+  let effectiveOffsetMinutes;
+  if (tzOffsetMinutes !== null && !isNaN(tzOffsetMinutes)) {
+    effectiveOffsetMinutes = Number(tzOffsetMinutes);
+  } else if (validLat >= 6 && validLat <= 38 && validLon >= 68 && validLon <= 98) {
+    // Indian Standard Time (IST) is UTC+5:30 (+330 mins)
+    effectiveOffsetMinutes = 330;
+  } else {
+    // Standard international timezone nearest 30-minute meridians
+    effectiveOffsetMinutes = Math.round((validLon / 15) * 2) * 30;
+  }
 
   const startOfYear = new Date(now.getFullYear(), 0, 0);
   const diff = now - startOfYear;
@@ -151,7 +164,15 @@ export function calculateSolarCycle(lat = 28.6139, lon = 77.2090, refDate = new 
 
   function formatTime(d) {
     if (!d) return "--:--";
-    return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true });
+    const localMs = d.getTime() + effectiveOffsetMinutes * 60000;
+    const localDate = new Date(localMs);
+    let hours = localDate.getUTCHours();
+    const minutes = localDate.getUTCMinutes();
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    const minStr = String(minutes).padStart(2, "0");
+    return `${hours}:${minStr} ${ampm}`;
   }
 
   return {

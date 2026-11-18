@@ -1,13 +1,15 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react";
 import { Header } from "./components/common/Header";
 import { SearchBar } from "./components/common/SearchBar";
 import { Loader } from "./components/common/Loader";
 import { Footer } from "./components/common/Footer";
-import { WeatherView } from "./components/weather/WeatherView";
-import { AQIView } from "./components/aqi/AQIView";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { useGeolocation } from "./hooks/useGeolocation";
 import { normalizeAQIWeatherData } from "./services/weatherService";
+
+// Dynamic lazy imports for route-level code splitting & bundle optimization
+const WeatherView = lazy(() => import("./components/weather/WeatherView"));
+const AQIView = lazy(() => import("./components/aqi/AQIView"));
 import {
   fetchAQIBySlug,
   fetchAQIByCoords,
@@ -19,6 +21,11 @@ import {
 import { DEFAULT_LOCATION, STORAGE_KEYS } from "./constants/api";
 import { formatLocationInfo } from "./constants/aqiStandards";
 import { logger, trackEvent, captureException } from "./utils/logger";
+import {
+  getSavedLocation,
+  saveLastLocation,
+  detectApproximateLocation
+} from "./services/locationDetection";
 import { AlertCircle, X, Wind, Sun } from "lucide-react";
 
 export function App() {
@@ -36,7 +43,9 @@ export function App() {
     "Bengaluru"
   ]);
 
-  const [currentLocation, setCurrentLocation] = useState(DEFAULT_LOCATION);
+  const [currentLocation, setCurrentLocation] = useState(() => {
+    return getSavedLocation() || DEFAULT_LOCATION;
+  });
   const [weatherData, setWeatherData] = useState(null);
   const [aqiData, setAqiData] = useState(null);
   const [trendData, setTrendData] = useState(null);
@@ -46,6 +55,9 @@ export function App() {
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("Loading...");
   const [error, setError] = useState(null);
+
+  // Monotonic sequence ref to prevent asynchronous race conditions on rapid searches
+  const activeQueryIdRef = useRef(0);
 
   const { getPosition, loading: geoLoading } = useGeolocation();
 
@@ -82,6 +94,7 @@ export function App() {
    * Load AQI & Weather data for a given location or coordinates
    */
   const loadAQIData = useCallback(async (slug, lat, lon) => {
+    const queryId = ++activeQueryIdRef.current;
     try {
       let aqiInfo = null;
 
@@ -98,6 +111,8 @@ export function App() {
         aqiInfo = await fetchAQIByCoords(lat, lon);
       }
 
+      if (queryId !== activeQueryIdRef.current) return;
+
       if (aqiInfo) {
         setAqiData(aqiInfo);
         if (aqiInfo.weather) {
@@ -107,19 +122,31 @@ export function App() {
 
         // Fetch 24-hour trend in parallel
         if (resolvedSlug) {
-          fetch24HourTrend(resolvedSlug).then(setTrendData).catch(() => {});
+          fetch24HourTrend(resolvedSlug)
+            .then((data) => {
+              if (queryId === activeQueryIdRef.current) setTrendData(data);
+            })
+            .catch(() => {});
         }
 
         // Fetch nearby stations if coordinates exist
         const stationLat = aqiInfo.latitude || lat;
         const stationLon = aqiInfo.longitude || lon;
         if (stationLat && stationLon) {
-          fetchNearbyStations(stationLat, stationLon).then(setNearbyStations).catch(() => {});
+          fetchNearbyStations(stationLat, stationLon)
+            .then((data) => {
+              if (queryId === activeQueryIdRef.current) setNearbyStations(data);
+            })
+            .catch(() => {});
         }
       }
 
       // Fetch top polluted cities leaderboard
-      fetchTopPollutedCities(6).then(setTopCities).catch(() => {});
+      fetchTopPollutedCities(6)
+        .then((data) => {
+          if (queryId === activeQueryIdRef.current) setTopCities(data);
+        })
+        .catch(() => {});
     } catch (err) {
       logger.warn("AQI data fetch warning:", err.message);
     }
@@ -130,6 +157,7 @@ export function App() {
    */
   const loadDataByCoords = useCallback(
     async (lat, lon) => {
+      const queryId = ++activeQueryIdRef.current;
       setLoading(true);
       setError(null);
       setLoadingMessage("Pinpointing closest physical monitoring sensor...");
@@ -137,6 +165,8 @@ export function App() {
       try {
         // 1. High-precision nearest physical sensor lookup (type=1) via aqi.in
         const aqiClosest = await fetchAQIByCoords(lat, lon);
+        if (queryId !== activeQueryIdRef.current) return;
+
         setAqiData(aqiClosest);
 
         // 2. Derive complete meteorological weather model from aqi.in telemetry
@@ -157,21 +187,38 @@ export function App() {
           slug: aqiClosest.location_slug || aqiClosest.slug
         };
         setCurrentLocation(newLoc);
+        saveLastLocation(newLoc);
         recordSearchHistory(stationCity);
         trackEvent("coords_located", { lat: stationLat, lon: stationLon, city: stationCity });
 
         // 3. Parallel fetch 24h trend & nearby stations
         const trendSlug = aqiClosest.location_slug || aqiClosest.slug;
         if (trendSlug) {
-          fetch24HourTrend(trendSlug).then(setTrendData).catch(() => {});
+          fetch24HourTrend(trendSlug)
+            .then((data) => {
+              if (queryId === activeQueryIdRef.current) setTrendData(data);
+            })
+            .catch(() => {});
         }
-        fetchNearbyStations(stationLat, stationLon).then(setNearbyStations).catch(() => {});
-        fetchTopPollutedCities(6).then(setTopCities).catch(() => {});
+        fetchNearbyStations(stationLat, stationLon)
+          .then((data) => {
+            if (queryId === activeQueryIdRef.current) setNearbyStations(data);
+          })
+          .catch(() => {});
+        fetchTopPollutedCities(6)
+          .then((data) => {
+            if (queryId === activeQueryIdRef.current) setTopCities(data);
+          })
+          .catch(() => {});
       } catch (err) {
-        captureException(err, { action: "loadDataByCoords", lat, lon });
-        setError(err.message || "Failed to fetch data for current coordinates.");
+        if (queryId === activeQueryIdRef.current) {
+          captureException(err, { action: "loadDataByCoords", lat, lon });
+          setError(err.message || "Failed to fetch data for current coordinates.");
+        }
       } finally {
-        setLoading(false);
+        if (queryId === activeQueryIdRef.current) {
+          setLoading(false);
+        }
       }
     },
     [recordSearchHistory]
@@ -182,6 +229,7 @@ export function App() {
    */
   const loadDataByCity = useCallback(
     async (cityName, specificSlug = null) => {
+      const queryId = ++activeQueryIdRef.current;
       setLoading(true);
       setError(null);
       setLoadingMessage(`Searching "${cityName}"...`);
@@ -191,6 +239,7 @@ export function App() {
         let slug = specificSlug;
         if (!slug) {
           const searchMatches = await searchAQILocations(cityName);
+          if (queryId !== activeQueryIdRef.current) return;
           if (searchMatches && searchMatches.length > 0) {
             slug = searchMatches[0].slug;
           } else {
@@ -203,7 +252,9 @@ export function App() {
         try {
           aqiInfo = await fetchAQIBySlug(slug);
         } catch {
+          if (queryId !== activeQueryIdRef.current) return;
           const searchMatches = await searchAQILocations(cityName);
+          if (queryId !== activeQueryIdRef.current) return;
           if (searchMatches && searchMatches.length > 0) {
             slug = searchMatches[0].slug;
             aqiInfo = await fetchAQIBySlug(slug);
@@ -211,6 +262,8 @@ export function App() {
             throw new Error(`Location "${cityName}" not found.`);
           }
         }
+
+        if (queryId !== activeQueryIdRef.current) return;
 
         setAqiData(aqiInfo);
         if (aqiInfo.weather) {
@@ -222,30 +275,48 @@ export function App() {
         const lat = aqiInfo.latitude || aqiInfo.city_lat;
         const lon = aqiInfo.longitude || aqiInfo.city_lon;
 
-        setCurrentLocation({
+        const newLoc = {
           city: stationCity,
           country: aqiInfo.country || "India",
           lat,
           lon,
           slug
-        });
+        };
+        setCurrentLocation(newLoc);
+        saveLastLocation(newLoc);
         recordSearchHistory(stationCity);
         trackEvent("city_searched", { city: stationCity, slug });
 
         // 3. Fetch trend & nearby stations in parallel
         const trendSlug = aqiInfo.city_slug || aqiInfo.location_slug || slug;
         if (trendSlug) {
-          fetch24HourTrend(trendSlug).then(setTrendData).catch(() => {});
+          fetch24HourTrend(trendSlug)
+            .then((data) => {
+              if (queryId === activeQueryIdRef.current) setTrendData(data);
+            })
+            .catch(() => {});
         }
         if (lat && lon) {
-          fetchNearbyStations(lat, lon).then(setNearbyStations).catch(() => {});
+          fetchNearbyStations(lat, lon)
+            .then((data) => {
+              if (queryId === activeQueryIdRef.current) setNearbyStations(data);
+            })
+            .catch(() => {});
         }
-        fetchTopPollutedCities(6).then(setTopCities).catch(() => {});
+        fetchTopPollutedCities(6)
+          .then((data) => {
+            if (queryId === activeQueryIdRef.current) setTopCities(data);
+          })
+          .catch(() => {});
       } catch (err) {
-        captureException(err, { action: "loadDataByCity", cityName, specificSlug });
-        setError(err.message || "Failed to fetch data for the requested city.");
+        if (queryId === activeQueryIdRef.current) {
+          captureException(err, { action: "loadDataByCity", cityName, specificSlug });
+          setError(err.message || "Failed to fetch data for the requested city.");
+        }
       } finally {
-        setLoading(false);
+        if (queryId === activeQueryIdRef.current) {
+          setLoading(false);
+        }
       }
     },
     [recordSearchHistory]
@@ -262,6 +333,8 @@ export function App() {
           ? stationOrSlug
           : stationOrSlug.location_slug || stationOrSlug.slug || stationOrSlug.station_slug;
 
+      const queryId = ++activeQueryIdRef.current;
+
       // If station object already has live iaqi telemetry, update immediately for fast UI feedback
       if (typeof stationOrSlug === "object" && stationOrSlug.iaqi) {
         setAqiData(stationOrSlug);
@@ -276,50 +349,105 @@ export function App() {
       setLoadingMessage("Loading sensor station telemetry...");
       try {
         const aqiInfo = await fetchAQIBySlug(targetSlug);
+        if (queryId !== activeQueryIdRef.current) return;
+
         setAqiData(aqiInfo);
         if (aqiInfo.weather) {
           setWeatherData(normalizeAQIWeatherData(aqiInfo));
         }
         const trendSlug = aqiInfo.city_slug || aqiInfo.location_slug || targetSlug;
         if (trendSlug) {
-          fetch24HourTrend(trendSlug).then(setTrendData).catch(() => {});
+          fetch24HourTrend(trendSlug)
+            .then((data) => {
+              if (queryId === activeQueryIdRef.current) setTrendData(data);
+            })
+            .catch(() => {});
         }
         trackEvent("station_selected", { slug: targetSlug });
       } catch (err) {
-        captureException(err, { action: "handleSelectStation", targetSlug });
-        // Only show error if we didn't already set station data
-        if (typeof stationOrSlug !== "object" || !stationOrSlug.iaqi) {
-          setError("Could not load station telemetry: " + err.message);
+        if (queryId === activeQueryIdRef.current) {
+          captureException(err, { action: "handleSelectStation", targetSlug });
+          // Only show error if we didn't already set station data
+          if (typeof stationOrSlug !== "object" || !stationOrSlug.iaqi) {
+            setError("Could not load station telemetry: " + err.message);
+          }
         }
       } finally {
-        setLoading(false);
+        if (queryId === activeQueryIdRef.current) {
+          setLoading(false);
+        }
       }
     },
     []
   );
 
-  // Initial load: GPS if available, else Delhi default
+  // Initial load: Progressive regional and GPS location discovery
+  // Tier 1: Stored user location from previous session (0ms instant recovery)
+  // Tier 2: Automatic regional discovery via Edge CDN / IP Geolocation / Browser Timezone
+  // Tier 3: Concurrently request browser GPS to upgrade to neighborhood physical sensor if granted
   useEffect(() => {
     let isMounted = true;
+    let locationLoaded = false;
 
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        if (isMounted) {
-          loadDataByCoords(pos.coords.latitude, pos.coords.longitude);
-        }
-      },
-      () => {
-        if (isMounted) {
+    // 1. Check for saved user location from a previous session
+    const saved = getSavedLocation();
+    if (saved && (saved.city || (saved.lat && saved.lon))) {
+      locationLoaded = true;
+      if (saved.lat && saved.lon) {
+        loadDataByCoords(saved.lat, saved.lon);
+      } else {
+        loadDataByCity(saved.city, saved.slug);
+      }
+    }
+
+    // 2. Fast automatic regional/IP detection if no saved location
+    if (!locationLoaded) {
+      detectApproximateLocation()
+        .then((approx) => {
+          if (!isMounted || locationLoaded) return;
+          locationLoaded = true;
+          if (approx.lat && approx.lon) {
+            loadDataByCoords(approx.lat, approx.lon);
+          } else if (approx.city) {
+            loadDataByCity(approx.city);
+          } else {
+            loadDataByCity(DEFAULT_LOCATION.city);
+          }
+        })
+        .catch(() => {
+          if (!isMounted || locationLoaded) return;
           loadDataByCity(DEFAULT_LOCATION.city);
-        }
-      },
-      { timeout: 5000 }
-    );
+        });
+    }
+
+    // 3. Concurrently query browser GPS to upgrade to closest physical sensor if user allows
+    if (typeof navigator !== "undefined" && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          if (isMounted) {
+            locationLoaded = true;
+            loadDataByCoords(pos.coords.latitude, pos.coords.longitude);
+          }
+        },
+        () => {
+          // If GPS is declined or unavailable, approximate or saved location is already active
+          if (isMounted && !locationLoaded) {
+            detectApproximateLocation().then((approx) => {
+              if (!isMounted || locationLoaded) return;
+              locationLoaded = true;
+              if (approx.city) loadDataByCity(approx.city);
+              else loadDataByCity(DEFAULT_LOCATION.city);
+            });
+          }
+        },
+        { timeout: 6000, maximumAge: 300000 }
+      );
+    }
 
     return () => {
       isMounted = false;
     };
-  }, []); // Run once on startup
+  }, [loadDataByCoords, loadDataByCity]);
 
   // Switch mode handler
   const handleModeChange = (newMode) => {
@@ -473,26 +601,30 @@ export function App() {
       <div className="mt-4">
         {loading ? (
           <Loader message={loadingMessage} />
-        ) : mode === "weather" ? (
-          <WeatherView
-            weatherData={weatherData}
-            theme={theme}
-            onLocationClick={handleGeolocationClick}
-            locationLoading={geoLoading}
-          />
         ) : (
-          <AQIView
-            aqiData={aqiData}
-            trendData={trendData}
-            nearbyStations={nearbyStations}
-            topCities={topCities}
-            userCoords={{ lat: currentLocation.lat, lon: currentLocation.lon }}
-            onSelectStation={handleSelectStation}
-            onSelectCity={loadDataByCity}
-            onLocationClick={handleGeolocationClick}
-            locationLoading={geoLoading}
-            theme={theme}
-          />
+          <Suspense fallback={<Loader message="Loading environmental view..." />}>
+            {mode === "weather" ? (
+              <WeatherView
+                weatherData={weatherData}
+                theme={theme}
+                onLocationClick={handleGeolocationClick}
+                locationLoading={geoLoading}
+              />
+            ) : (
+              <AQIView
+                aqiData={aqiData}
+                trendData={trendData}
+                nearbyStations={nearbyStations}
+                topCities={topCities}
+                userCoords={{ lat: currentLocation.lat, lon: currentLocation.lon }}
+                onSelectStation={handleSelectStation}
+                onSelectCity={loadDataByCity}
+                onLocationClick={handleGeolocationClick}
+                locationLoading={geoLoading}
+                theme={theme}
+              />
+            )}
+          </Suspense>
         )}
       </div>
 

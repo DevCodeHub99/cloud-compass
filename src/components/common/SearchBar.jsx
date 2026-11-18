@@ -18,7 +18,38 @@ export function SearchBar({
   const [isFocused, setIsFocused] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
   const [suggestLoading, setSuggestLoading] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
   const containerRef = useRef(null);
+
+  // Reset keyboard selected index when query or suggestions change
+  useEffect(() => {
+    setSelectedIndex(-1);
+  }, [query, suggestions]);
+
+  const activeItems = query.trim().length >= 2 ? suggestions : (isFocused ? searchHistory : []);
+
+  const handleKeyDown = (e) => {
+    if (!isFocused || activeItems.length === 0) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev < activeItems.length - 1 ? prev + 1 : 0));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev > 0 ? prev - 1 : activeItems.length - 1));
+    } else if (e.key === "Enter" && selectedIndex >= 0 && selectedIndex < activeItems.length) {
+      e.preventDefault();
+      const selected = activeItems[selectedIndex];
+      if (query.trim().length >= 2) {
+        handleSelectSuggestion(selected);
+      } else {
+        handleSelectHistory(selected);
+      }
+    } else if (e.key === "Escape") {
+      setIsFocused(false);
+      setSelectedIndex(-1);
+    }
+  };
 
   // Debounced live search autocomplete
   useEffect(() => {
@@ -86,9 +117,17 @@ export function SearchBar({
         <form onSubmit={handleSubmit} className="relative flex-1">
           <input
             type="text"
+            id="location-search-input"
+            role="combobox"
+            aria-autocomplete="list"
+            aria-expanded={isFocused && activeItems.length > 0}
+            aria-controls="search-suggestions-listbox"
+            aria-activedescendant={selectedIndex >= 0 ? `suggestion-option-${selectedIndex}` : undefined}
+            aria-label={mode === "weather" ? "Search city for weather forecast" : "Search city or nearby sensor for air quality"}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onFocus={() => setIsFocused(true)}
+            onKeyDown={handleKeyDown}
             placeholder={placeholderText}
             className={`w-full p-3.5 pl-12 pr-12 rounded-full shadow-md focus:outline-none focus:ring-2 focus:ring-teal-400 text-sm transition-all border ${
               isDark
@@ -108,8 +147,11 @@ export function SearchBar({
               onClick={() => {
                 setQuery("");
                 setSuggestions([]);
+                setSelectedIndex(-1);
               }}
-              className={`absolute top-1/2 right-4 transform -translate-y-1/2 ${
+              aria-label="Clear search input"
+              title="Clear search input"
+              className={`absolute top-1/2 right-4 transform -translate-y-1/2 p-1 rounded-full cursor-pointer ${
                 isDark ? "text-slate-400 hover:text-white" : "text-slate-400 hover:text-slate-700"
               }`}
             >
@@ -141,17 +183,32 @@ export function SearchBar({
                       No matching cities or sensors found for "{query}".
                     </p>
                   ) : (
-                    <ul className="mt-1 divide-y divide-gray-50 dark:divide-slate-800">
+                    <ul
+                      id="search-suggestions-listbox"
+                      role="listbox"
+                      aria-label="Location suggestions"
+                      className="mt-1 divide-y divide-gray-50 dark:divide-slate-800"
+                    >
                       {suggestions.map((item, idx) => {
                         const isStation = Boolean(item.isStation);
                         const title = item.displayName || item.city || item.location || "Location";
                         const subtitle = item.state ? `${item.state}, ${item.country || ""}` : item.country || "";
+                        const isSelected = selectedIndex === idx;
 
                         return (
                           <li
                             key={idx}
+                            id={`suggestion-option-${idx}`}
+                            role="option"
+                            aria-selected={isSelected}
                             onMouseDown={() => handleSelectSuggestion(item)}
-                            className="flex items-center justify-between p-2.5 rounded-lg hover:bg-teal-50 dark:hover:bg-slate-800/80 cursor-pointer transition-colors"
+                            className={`flex items-center justify-between p-2.5 rounded-lg cursor-pointer transition-colors ${
+                              isSelected
+                                ? isDark
+                                  ? "bg-slate-800 ring-1 ring-teal-500/50"
+                                  : "bg-teal-50 ring-1 ring-teal-500/50"
+                                : "hover:bg-teal-50 dark:hover:bg-slate-800/80"
+                            }`}
                           >
                             <div className="flex items-center space-x-2 text-left truncate pr-2">
                               {isStation ? (
@@ -200,17 +257,34 @@ export function SearchBar({
                       </button>
                     )}
                   </div>
-                  <ul className="mt-1 divide-y divide-gray-50 dark:divide-slate-800">
-                    {searchHistory.map((item, idx) => (
-                      <li
-                        key={idx}
-                        onMouseDown={() => handleSelectHistory(item)}
-                        className="flex items-center space-x-2 text-gray-700 dark:text-slate-300 hover:bg-teal-50 dark:hover:bg-slate-800/80 hover:text-teal-900 dark:hover:text-white p-2.5 rounded-lg cursor-pointer text-sm transition-colors"
-                      >
-                        <Search className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500" />
-                        <span>{item}</span>
-                      </li>
-                    ))}
+                  <ul
+                    id="search-suggestions-listbox"
+                    role="listbox"
+                    aria-label="Recent search history"
+                    className="mt-1 divide-y divide-gray-50 dark:divide-slate-800"
+                  >
+                    {searchHistory.map((item, idx) => {
+                      const isSelected = selectedIndex === idx;
+                      return (
+                        <li
+                          key={idx}
+                          id={`suggestion-option-${idx}`}
+                          role="option"
+                          aria-selected={isSelected}
+                          onMouseDown={() => handleSelectHistory(item)}
+                          className={`flex items-center space-x-2 p-2.5 rounded-lg cursor-pointer text-sm transition-colors ${
+                            isSelected
+                              ? isDark
+                                ? "bg-slate-800 text-white ring-1 ring-teal-500/50"
+                                : "bg-teal-50 text-teal-900 ring-1 ring-teal-500/50"
+                              : "text-gray-700 dark:text-slate-300 hover:bg-teal-50 dark:hover:bg-slate-800/80 hover:text-teal-900 dark:hover:text-white"
+                          }`}
+                        >
+                          <Search className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500" />
+                          <span>{item}</span>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               ) : null}

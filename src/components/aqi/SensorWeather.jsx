@@ -1,7 +1,7 @@
 import React from "react";
 import { Thermometer, Droplets, Wind, Gauge, Eye, SunMedium, CloudSun } from "lucide-react";
 
-export function SensorWeather({ weather = {}, theme = "light" }) {
+export const SensorWeather = React.memo(function SensorWeather({ weather = {}, theme = "light" }) {
   const isDark = theme === "dark";
 
   if (!weather || (!weather.temp_c && weather.temp_c !== 0)) return null;
@@ -191,6 +191,6 @@ export function SensorWeather({ weather = {}, theme = "light" }) {
       </div>
     </div>
   );
-}
+});
 
 export default SensorWeather;

@@ -27,6 +27,34 @@ export function isTokenExpired(token) {
 }
 
 /**
+ * Returns expiration metadata for telemetry JWT tokens
+ */
+export function getTokenExpirationInfo(token) {
+  try {
+    if (!token || typeof token !== "string") return null;
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join("")
+    );
+    const payload = JSON.parse(jsonPayload);
+    if (!payload.exp) return null;
+    const remainingMs = payload.exp * 1000 - Date.now();
+    return {
+      exp: payload.exp,
+      isExpired: remainingMs <= 60000,
+      remainingDays: Math.max(0, Math.round(remainingMs / (1000 * 60 * 60 * 24)))
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Manages Bearer Token with localStorage persistence & fallback
  * Proactively verifies token expiration to eliminate stale 401 loops
  */
@@ -46,6 +74,17 @@ function getToken() {
   } catch (e) {
     logger.debug("Could not access localStorage for token:", e);
   }
+
+  // Observability: Check bootstrap token expiration lifecycle
+  const info = getTokenExpirationInfo(DEFAULT_AQI_TOKEN);
+  if (info) {
+    if (info.isExpired) {
+      logger.error("Default bootstrap AQI token has expired. Supply VITE_AQI_TOKEN in .env.local.");
+    } else if (info.remainingDays <= 3) {
+      logger.warn(`Default bootstrap AQI token will expire in ${info.remainingDays} days.`);
+    }
+  }
+
   return DEFAULT_AQI_TOKEN;
 }
 
@@ -100,13 +139,20 @@ async function aqiFetch(path, params = {}, timeoutMs = 10000) {
       // If the current token was NOT the bootstrap token, retry once with the bootstrap token
       if (token !== DEFAULT_AQI_TOKEN && !isTokenExpired(DEFAULT_AQI_TOKEN)) {
         logger.info("Retrying telemetry request with fresh bootstrap token...");
-        const retryRes = await fetch(url.toString(), {
-          headers: { ...headers, Authorization: `Bearer ${DEFAULT_AQI_TOKEN}` },
-          signal: controller.signal
-        });
-        if (retryRes.ok) {
-          saveToken(DEFAULT_AQI_TOKEN);
-          return retryRes.json();
+        clearTimeout(timeoutId);
+        const retryController = new AbortController();
+        const retryTimeoutId = setTimeout(() => retryController.abort(), timeoutMs);
+        try {
+          const retryRes = await fetch(url.toString(), {
+            headers: { ...headers, Authorization: `Bearer ${DEFAULT_AQI_TOKEN}` },
+            signal: retryController.signal
+          });
+          if (retryRes.ok) {
+            saveToken(DEFAULT_AQI_TOKEN);
+            return retryRes.json();
+          }
+        } finally {
+          clearTimeout(retryTimeoutId);
         }
       }
 

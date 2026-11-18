@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { calculateSolarCycle } from "../../utils/solarCalculator";
 
-export function SunTimeline({ astronomy, coord, theme = "light" }) {
+export const SunTimeline = React.memo(function SunTimeline({ astronomy, coord, theme = "light" }) {
   const isDark = theme === "dark";
   const [now, setNow] = useState(() => new Date());
   const [isHovered, setIsHovered] = useState(false);
@@ -579,6 +579,6 @@ export function SunTimeline({ astronomy, coord, theme = "light" }) {
       </div>
     </section>
   );
-}
+});
 
 export default SunTimeline;

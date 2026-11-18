@@ -3,7 +3,7 @@ import { Radio, CheckCircle, Navigation2 } from "lucide-react";
 import { getCPCBBadge, formatLocationInfo } from "../../constants/aqiStandards";
 import { calculateDistance } from "../../services/aqiService";
 
-export function NearbyStations({
+export const NearbyStations = React.memo(function NearbyStations({
   stations = [],
   activeStationSlug,
   userCoords,
@@ -149,6 +149,6 @@ export function NearbyStations({
       </div>
     </div>
   );
-}
+});
 
 export default NearbyStations;

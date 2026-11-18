@@ -1,7 +1,7 @@
 import React from "react";
 import { Calendar, Droplets } from "lucide-react";
 
-export function DailyForecast({ daily, currentTemp, theme = "light" }) {
+export const DailyForecast = React.memo(function DailyForecast({ daily, currentTemp, theme = "light" }) {
   const isDark = theme === "dark";
 
   if (!daily || daily.length === 0) return null;
@@ -129,6 +129,6 @@ export function DailyForecast({ daily, currentTemp, theme = "light" }) {
       </div>
     </section>
   );
-}
+});
 
 export default DailyForecast;

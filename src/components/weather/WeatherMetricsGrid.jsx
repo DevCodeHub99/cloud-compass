@@ -18,7 +18,7 @@ import {
   getPressureStatus
 } from "../../utils/weatherUtils";
 
-export function WeatherMetricsGrid({ weatherData, theme = "light" }) {
+export const WeatherMetricsGrid = React.memo(function WeatherMetricsGrid({ weatherData, theme = "light" }) {
   const isDark = theme === "dark";
   if (!weatherData || !weatherData.current) return null;
 
@@ -237,6 +237,6 @@ export function WeatherMetricsGrid({ weatherData, theme = "light" }) {
       </div>
     </div>
   );
-}
+});
 
 export default WeatherMetricsGrid;

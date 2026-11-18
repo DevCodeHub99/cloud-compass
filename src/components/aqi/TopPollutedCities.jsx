@@ -2,7 +2,7 @@ import React from "react";
 import { Flame } from "lucide-react";
 import { getCPCBBadge } from "../../constants/aqiStandards";
 
-export function TopPollutedCities({ cities = [], onSelectCity, theme = "light" }) {
+export const TopPollutedCities = React.memo(function TopPollutedCities({ cities = [], onSelectCity, theme = "light" }) {
   const isDark = theme === "dark";
 
   if (!cities || cities.length === 0) return null;
@@ -103,6 +103,6 @@ export function TopPollutedCities({ cities = [], onSelectCity, theme = "light" }
       </div>
     </div>
   );
-}
+});
 
 export default TopPollutedCities;

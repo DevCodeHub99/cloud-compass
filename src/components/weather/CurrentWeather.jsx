@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { getUVCategory, getWindDirection } from "../../utils/weatherUtils";
 
-export function CurrentWeather({
+export const CurrentWeather = React.memo(function CurrentWeather({
   weatherData,
   theme = "light",
   onLocationClick,
@@ -231,6 +231,6 @@ export function CurrentWeather({
       </div>
     </div>
   );
-}
+});
 
 export default CurrentWeather;

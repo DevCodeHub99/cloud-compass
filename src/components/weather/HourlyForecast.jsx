@@ -11,7 +11,7 @@ import {
   Sunset
 } from "lucide-react";
 
-export function HourlyForecast({ hourly, advisory, astronomy, theme = "light" }) {
+export const HourlyForecast = React.memo(function HourlyForecast({ hourly, advisory, astronomy, theme = "light" }) {
   const isDark = theme === "dark";
   const scrollRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -452,6 +452,6 @@ export function HourlyForecast({ hourly, advisory, astronomy, theme = "light" })
       </div>
     </section>
   );
-}
+});
 
 export default HourlyForecast;
