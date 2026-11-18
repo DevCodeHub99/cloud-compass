@@ -155,7 +155,7 @@ export function SearchBar({
               }}
               aria-label="Clear search input"
               title="Clear search input"
-              className={`absolute top-1/2 right-4 transform -translate-y-1/2 p-1 rounded-full cursor-pointer ${
+              className={`absolute top-1/2 right-3.5 transform -translate-y-1/2 p-2 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-full cursor-pointer transition-colors ${
                 isDark ? "text-slate-400 hover:text-white" : "text-slate-400 hover:text-slate-700"
               }`}
             >

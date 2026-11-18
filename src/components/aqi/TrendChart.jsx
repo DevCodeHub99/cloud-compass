@@ -368,7 +368,7 @@ export const TrendChart = React.memo(function TrendChart({ trendData, theme = "l
           <div
             className="absolute pointer-events-none transition-all duration-75 ease-out z-20 flex flex-col items-center"
             style={{
-              left: `${tooltipLeftPct}%`,
+              left: `${Math.max(6, Math.min(94, tooltipLeftPct))}%`,
               top: `calc(${tooltipTopPct}% - 6px)`,
               transform: "translate(-50%, -100%)"
             }}

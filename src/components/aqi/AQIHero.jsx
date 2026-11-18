@@ -230,7 +230,7 @@ export const AQIHero = React.memo(function AQIHero({ aqiData, onLocationClick, l
             <button
               type="button"
               onClick={() => setStandard("cpcb")}
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg font-bold transition-all text-xs cursor-pointer select-none outline-none ${
+              className={`flex items-center space-x-1.5 px-3 py-1.5 min-h-[36px] sm:min-h-[40px] rounded-lg font-bold transition-all text-xs cursor-pointer select-none outline-none ${
                 standard === "cpcb"
                   ? "bg-teal-700 text-white shadow-xs font-black"
                   : isDark
@@ -255,7 +255,7 @@ export const AQIHero = React.memo(function AQIHero({ aqiData, onLocationClick, l
             <button
               type="button"
               onClick={() => setStandard("usepa")}
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg font-bold transition-all text-xs cursor-pointer select-none outline-none ${
+              className={`flex items-center space-x-1.5 px-3 py-1.5 min-h-[36px] sm:min-h-[40px] rounded-lg font-bold transition-all text-xs cursor-pointer select-none outline-none ${
                 standard === "usepa"
                   ? "bg-teal-700 text-white shadow-xs font-black"
                   : isDark

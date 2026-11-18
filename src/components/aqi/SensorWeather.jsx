@@ -9,13 +9,13 @@ export const SensorWeather = React.memo(function SensorWeather({ weather = {}, t
   return (
     <div
       id="weather-details"
-      className={`backdrop-blur-xl p-4 sm:p-6 rounded-3xl max-w-4xl mx-auto mt-4 scroll-mt-6 transition-all duration-300 border ${
+      className={`backdrop-blur-xl p-3.5 sm:p-6 lg:p-7 rounded-3xl max-w-4xl mx-auto mt-4 scroll-mt-6 transition-all duration-300 border ${
         isDark
           ? "bg-slate-900/95 text-white border-slate-800 shadow-2xl"
           : "bg-white text-slate-800 border-slate-200/90 shadow-xl shadow-slate-200/50"
       }`}
     >
-      <div className="flex items-center justify-between gap-3 mb-4">
+      <div className="flex items-center justify-between gap-3 mb-3.5 sm:mb-4">
         <h3
           className={`text-lg sm:text-xl font-bold flex items-center space-x-2 ${
             isDark ? "text-white" : "text-slate-900"
@@ -26,7 +26,7 @@ export const SensorWeather = React.memo(function SensorWeather({ weather = {}, t
         </h3>
         {weather.condition?.text && (
           <div
-            className={`inline-flex items-center space-x-1.5 px-3.5 py-1 rounded-full text-xs font-bold whitespace-nowrap shrink-0 border shadow-xs ${
+            className={`inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap shrink-0 border shadow-xs ${
               isDark
                 ? "bg-slate-800 text-slate-200 border-slate-700"
                 : "bg-slate-100 text-slate-800 border-slate-200"
@@ -50,7 +50,7 @@ export const SensorWeather = React.memo(function SensorWeather({ weather = {}, t
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5 text-sm">
         {/* Ambient Temperature */}
         <div
-          className={`p-3 rounded-2xl border flex flex-col justify-between ${
+          className={`p-2.5 sm:p-3 rounded-2xl border flex flex-col justify-between min-h-[76px] sm:min-h-[88px] ${
             isDark
               ? "bg-slate-800/80 border-slate-700"
               : "bg-slate-50 border-slate-200/80"
@@ -78,7 +78,7 @@ export const SensorWeather = React.memo(function SensorWeather({ weather = {}, t
 
         {/* Humidity */}
         <div
-          className={`p-3 rounded-2xl border flex flex-col justify-between ${
+          className={`p-2.5 sm:p-3 rounded-2xl border flex flex-col justify-between min-h-[76px] sm:min-h-[88px] ${
             isDark
               ? "bg-slate-800/80 border-slate-700"
               : "bg-slate-50 border-slate-200/80"
@@ -99,7 +99,7 @@ export const SensorWeather = React.memo(function SensorWeather({ weather = {}, t
 
         {/* Wind Speed & Direction */}
         <div
-          className={`p-3 rounded-2xl border flex flex-col justify-between ${
+          className={`p-2.5 sm:p-3 rounded-2xl border flex flex-col justify-between min-h-[76px] sm:min-h-[88px] ${
             isDark
               ? "bg-slate-800/80 border-slate-700"
               : "bg-slate-50 border-slate-200/80"
@@ -127,7 +127,7 @@ export const SensorWeather = React.memo(function SensorWeather({ weather = {}, t
 
         {/* Atmospheric Pressure */}
         <div
-          className={`p-3 rounded-2xl border flex flex-col justify-between ${
+          className={`p-2.5 sm:p-3 rounded-2xl border flex flex-col justify-between min-h-[76px] sm:min-h-[88px] ${
             isDark
               ? "bg-slate-800/80 border-slate-700"
               : "bg-slate-50 border-slate-200/80"
@@ -148,7 +148,7 @@ export const SensorWeather = React.memo(function SensorWeather({ weather = {}, t
 
         {/* Visibility */}
         <div
-          className={`p-3 rounded-2xl border flex flex-col justify-between ${
+          className={`p-2.5 sm:p-3 rounded-2xl border flex flex-col justify-between min-h-[76px] sm:min-h-[88px] ${
             isDark
               ? "bg-slate-800/80 border-slate-700"
               : "bg-slate-50 border-slate-200/80"
@@ -169,7 +169,7 @@ export const SensorWeather = React.memo(function SensorWeather({ weather = {}, t
 
         {/* UV Index */}
         <div
-          className={`p-3 rounded-2xl border flex flex-col justify-between ${
+          className={`p-2.5 sm:p-3 rounded-2xl border flex flex-col justify-between min-h-[76px] sm:min-h-[88px] ${
             isDark
               ? "bg-slate-800/80 border-slate-700"
               : "bg-slate-50 border-slate-200/80"

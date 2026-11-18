@@ -524,7 +524,7 @@ export function App() {
             type="button"
             onClick={() => handleModeChange("aqi")}
             aria-pressed={mode === "aqi"}
-            className={`relative z-10 flex-1 flex items-center justify-center space-x-2 py-2 px-4 rounded-full text-xs sm:text-sm font-black transition-colors duration-200 cursor-pointer outline-none select-none ${
+            className={`relative z-10 flex-1 flex items-center justify-center space-x-2 py-2.5 px-4 min-h-[42px] rounded-full text-xs sm:text-sm font-black transition-colors duration-200 cursor-pointer outline-none select-none ${
               mode === "aqi"
                 ? theme === "dark"
                   ? "text-white"
@@ -554,7 +554,7 @@ export function App() {
             type="button"
             onClick={() => handleModeChange("weather")}
             aria-pressed={mode === "weather"}
-            className={`relative z-10 flex-1 flex items-center justify-center space-x-2 py-2 px-4 rounded-full text-xs sm:text-sm font-black transition-colors duration-200 cursor-pointer outline-none select-none ${
+            className={`relative z-10 flex-1 flex items-center justify-center space-x-2 py-2.5 px-4 min-h-[42px] rounded-full text-xs sm:text-sm font-black transition-colors duration-200 cursor-pointer outline-none select-none ${
               mode === "weather"
                 ? theme === "dark"
                   ? "text-white"
