@@ -2,34 +2,9 @@ import { AQI_API_BASE, DEFAULT_AQI_TOKEN, STORAGE_KEYS } from "../constants/api.
 import { logger } from "../utils/logger.js";
 
 /**
- * Checks whether a JWT token has expired or is invalid
- * Decodes the payload without external dependencies
+ * Safely decodes and parses the payload of a JWT token without external dependencies
  */
-export function isTokenExpired(token) {
-  try {
-    if (!token || typeof token !== "string") return true;
-    const parts = token.split(".");
-    if (parts.length !== 3) return true;
-    const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split("")
-        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-        .join("")
-    );
-    const payload = JSON.parse(jsonPayload);
-    if (!payload.exp) return false;
-    // 60-second proactive buffer before wall-clock expiry
-    return Date.now() >= payload.exp * 1000 - 60000;
-  } catch {
-    return true;
-  }
-}
-
-/**
- * Returns expiration metadata for telemetry JWT tokens
- */
-export function getTokenExpirationInfo(token) {
+export function parseJwtPayload(token) {
   try {
     if (!token || typeof token !== "string") return null;
     const parts = token.split(".");
@@ -41,17 +16,35 @@ export function getTokenExpirationInfo(token) {
         .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
         .join("")
     );
-    const payload = JSON.parse(jsonPayload);
-    if (!payload.exp) return null;
-    const remainingMs = payload.exp * 1000 - Date.now();
-    return {
-      exp: payload.exp,
-      isExpired: remainingMs <= 60000,
-      remainingDays: Math.max(0, Math.round(remainingMs / (1000 * 60 * 60 * 24)))
-    };
+    return JSON.parse(jsonPayload);
   } catch {
     return null;
   }
+}
+
+/**
+ * Checks whether a JWT token has expired or is invalid
+ */
+export function isTokenExpired(token) {
+  const payload = parseJwtPayload(token);
+  if (!payload) return true;
+  if (!payload.exp) return false;
+  // 60-second proactive buffer before wall-clock expiry
+  return Date.now() >= payload.exp * 1000 - 60000;
+}
+
+/**
+ * Returns expiration metadata for telemetry JWT tokens
+ */
+export function getTokenExpirationInfo(token) {
+  const payload = parseJwtPayload(token);
+  if (!payload || !payload.exp) return null;
+  const remainingMs = payload.exp * 1000 - Date.now();
+  return {
+    exp: payload.exp,
+    isExpired: remainingMs <= 60000,
+    remainingDays: Math.max(0, Math.round(remainingMs / (1000 * 60 * 60 * 24)))
+  };
 }
 
 /**

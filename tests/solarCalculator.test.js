@@ -66,11 +66,13 @@ describe("NOAA Solar Calculator Engine", () => {
       assert.ok(res.sunrise);
     });
 
-    // Zero / equator coordinates
+    // Zero / equator coordinates (Equator & Prime Meridian)
     assert.doesNotThrow(() => {
       const res = calculateSolarCycle(0, 0, new Date("2026-06-21T12:00:00Z"));
       assert.ok(res);
       assert.equal(typeof res.isDay, "boolean");
+      // At Prime Meridian (lon: 0) and UTC 12:00, solar noon is approximately 12:00 PM
+      assert.match(res.solarNoon, /12:\d{2}\sPM/, "Solar noon at Prime Meridian should be near 12:00 PM UTC");
     });
   });
 

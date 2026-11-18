@@ -8,8 +8,8 @@ export function calculateSolarCycle(lat = 28.6139, lon = 77.2090, refDate = new 
   const rad = Math.PI / 180;
   const deg = 180 / Math.PI;
 
-  const validLat = Number(lat) || 28.6139;
-  const validLon = Number(lon) || 77.2090;
+  const validLat = lat !== undefined && lat !== null && !isNaN(Number(lat)) ? Number(lat) : 28.6139;
+  const validLon = lon !== undefined && lon !== null && !isNaN(Number(lon)) ? Number(lon) : 77.2090;
   const now = refDate instanceof Date ? refDate : new Date(refDate);
 
   // Derive local standard timezone offset in minutes:
