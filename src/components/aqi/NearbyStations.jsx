@@ -28,7 +28,7 @@ export const NearbyStations = React.memo(function NearbyStations({
   return (
     <div
       id="nearby-sensors-section"
-      className={`backdrop-blur-xl p-4 sm:p-6 rounded-3xl max-w-4xl mx-auto mt-4 transition-all duration-300 border ${
+      className={`content-visibility-auto backdrop-blur-xl p-4 sm:p-6 rounded-3xl max-w-4xl mx-auto mt-4 transition-all duration-300 border ${
         isDark
           ? "bg-slate-900/95 text-white border-slate-800 shadow-2xl"
           : "bg-white text-slate-800 border-slate-200/90 shadow-xl shadow-slate-200/50"

@@ -2,17 +2,13 @@ import { STORAGE_KEYS, DEFAULT_LOCATION } from "../constants/api.js";
 import { logger } from "../utils/logger.js";
 
 /**
- * Universal fetch with configurable timeout abort controller
+ * Universal fetch with declarative timeout cancellation (AbortSignal.timeout)
  */
 async function fetchWithTimeout(url, timeoutMs = 2500) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const res = await fetch(url, { signal: controller.signal });
-    return res;
-  } finally {
-    clearTimeout(timer);
-  }
+  const signal = typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function"
+    ? AbortSignal.timeout(timeoutMs)
+    : undefined;
+  return fetch(url, { signal });
 }
 
 /**

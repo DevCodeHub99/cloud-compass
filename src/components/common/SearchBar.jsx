@@ -29,6 +29,9 @@ export function SearchBar({
   const activeItems = query.trim().length >= 2 ? suggestions : (isFocused ? searchHistory : []);
 
   const handleKeyDown = (e) => {
+    // Block action if IME composition candidate is actively being confirmed (ime-safe-enter-submit)
+    if (e.isComposing || e.keyCode === 229) return;
+
     if (!isFocused || activeItems.length === 0) return;
 
     if (e.key === "ArrowDown") {
@@ -87,6 +90,7 @@ export function SearchBar({
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (e.nativeEvent?.isComposing || e.nativeEvent?.keyCode === 229) return;
     const trimmed = query.trim();
     if (!trimmed) return;
     onSearch(trimmed);

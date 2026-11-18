@@ -2,6 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Viewport-wide color-scheme root adaptation & brand accent color */
+:root {
+  color-scheme: light;
+  accent-color: #0d9488;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+/* Defer rendering calculations for off-screen/below-the-fold telemetry sections */
+.content-visibility-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 300px;
+}
+
 body {
   min-height: 100vh;
   transition: background 0.4s ease, color 0.4s ease;
