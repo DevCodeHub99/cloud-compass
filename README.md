@@ -123,6 +123,12 @@ npm run build
 npm run preview
 ```
 
+### Running Test Suite
+```bash
+# Execute native zero-dependency test suite
+npm test
+```
+
 ---
 
 ## Environment Configuration

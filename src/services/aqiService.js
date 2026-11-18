@@ -184,7 +184,12 @@ async function aqiFetch(path, params = {}, timeoutMs = 10000) {
  * Calculates straight-line distance between two coordinates in km/meters
  */
 export function calculateDistance(lat1, lon1, lat2, lon2) {
-  if (lat1 === undefined || lon1 === undefined || lat2 === undefined || lon2 === undefined) {
+  if (
+    lat1 === undefined || lat1 === null ||
+    lon1 === undefined || lon1 === null ||
+    lat2 === undefined || lat2 === null ||
+    lon2 === undefined || lon2 === null
+  ) {
     return null;
   }
   const R = 6371;
