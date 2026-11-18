@@ -1,6 +1,7 @@
 # CloudCompass | Real-Time Weather & Air Quality Platform
 
 [![Live Demo](https://img.shields.io/badge/Demo-cloudcompass99.vercel.app-000000?logo=vercel&logoColor=white)](https://cloudcompass99.vercel.app/)
+[![CI](https://github.com/DevCodeHub99/cloud-compass/actions/workflows/ci.yml/badge.svg)](https://github.com/DevCodeHub99/cloud-compass/actions/workflows/ci.yml)
 [![React](https://img.shields.io/badge/React-18.3-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-6.4-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)

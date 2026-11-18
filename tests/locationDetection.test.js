@@ -10,11 +10,16 @@ import { STORAGE_KEYS } from "../src/constants/api.js";
 
 describe("Progressive Location Discovery Engine", () => {
   describe("getCityFromTimezone", () => {
-    it("successfully parses the city name from system IANA timezone", () => {
+    it("safely resolves system IANA timezone according to environment", () => {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
       const city = getCityFromTimezone();
-      // Should return a non-empty string representing city (e.g. Kolkata, New York, etc.)
-      assert.equal(typeof city, "string");
-      assert.ok(city.length > 1);
+      if (tz && tz.includes("/")) {
+        assert.equal(typeof city, "string");
+        assert.ok(city.length > 1);
+      } else {
+        // In headless CI environments (e.g. GitHub Actions ubuntu-latest), default timezone is UTC
+        assert.equal(city, null);
+      }
     });
 
     it("replaces underscores with spaces cleanly", () => {
