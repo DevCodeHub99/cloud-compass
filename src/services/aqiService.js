@@ -1,156 +1,69 @@
-import { AQI_API_BASE, DEFAULT_AQI_TOKEN, STORAGE_KEYS } from "../constants/api.js";
+import { AQI_PROXY_BASE } from "../constants/api.js";
 import { logger } from "../utils/logger.js";
 
-/**
- * Safely decodes and parses the payload of a JWT token without external dependencies
- */
-export function parseJwtPayload(token) {
-  try {
-    if (!token || typeof token !== "string") return null;
-    const parts = token.split(".");
-    if (parts.length !== 3) return null;
-    const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split("")
-        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-        .join("")
-    );
-    return JSON.parse(jsonPayload);
-  } catch {
-    return null;
+function buildTimeoutSignal(timeoutMs, externalSignal) {
+  const timeoutSignal =
+    typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function"
+      ? AbortSignal.timeout(timeoutMs)
+      : null;
+
+  if (externalSignal && timeoutSignal && typeof AbortSignal.any === "function") {
+    return { signal: AbortSignal.any([externalSignal, timeoutSignal]), cleanup: () => {} };
   }
-}
 
-/**
- * Checks whether a JWT token has expired or is invalid
- */
-export function isTokenExpired(token) {
-  const payload = parseJwtPayload(token);
-  if (!payload) return true;
-  if (!payload.exp) return false;
-  // 60-second proactive buffer before wall-clock expiry
-  return Date.now() >= payload.exp * 1000 - 60000;
-}
+  const controller = new AbortController();
+  const onExternalAbort = () => controller.abort(externalSignal.reason);
+  if (externalSignal) {
+    if (externalSignal.aborted) {
+      controller.abort(externalSignal.reason);
+    } else {
+      externalSignal.addEventListener("abort", onExternalAbort, { once: true });
+    }
+  }
+  const timerId = setTimeout(() => controller.abort(new DOMException("Timed out", "TimeoutError")), timeoutMs);
 
-/**
- * Returns expiration metadata for telemetry JWT tokens
- */
-export function getTokenExpirationInfo(token) {
-  const payload = parseJwtPayload(token);
-  if (!payload || !payload.exp) return null;
-  const remainingMs = payload.exp * 1000 - Date.now();
   return {
-    exp: payload.exp,
-    isExpired: remainingMs <= 60000,
-    remainingDays: Math.max(0, Math.round(remainingMs / (1000 * 60 * 60 * 24)))
+    signal: controller.signal,
+    cleanup: () => {
+      clearTimeout(timerId);
+      if (externalSignal) {
+        externalSignal.removeEventListener("abort", onExternalAbort);
+      }
+    }
   };
 }
 
 /**
- * Manages Bearer Token with localStorage persistence & fallback
- * Proactively verifies token expiration to eliminate stale 401 loops
+ * Standardized fetch via same-origin /api/aqi proxy with timeout and cancellation support.
+ * Keeps authorization tokens strictly server-side.
  */
-function getToken() {
-  try {
-    if (typeof window !== "undefined" && window.localStorage) {
-      const cached = window.localStorage.getItem(STORAGE_KEYS.AQI_TOKEN);
-      if (cached && cached.startsWith("ey")) {
-        if (!isTokenExpired(cached)) {
-          return cached;
-        }
-        // Purge expired cached token immediately
-        window.localStorage.removeItem(STORAGE_KEYS.AQI_TOKEN);
-        logger.warn("Purged expired telemetry token from local storage.");
-      }
-    }
-  } catch (e) {
-    logger.debug("Could not access localStorage for token:", e);
-  }
+async function aqiFetch(path, params = {}, options = {}) {
+  const { timeoutMs = 10000, signal: externalSignal } =
+    typeof options === "number" ? { timeoutMs: options } : options;
 
-  // Observability: Check bootstrap token expiration lifecycle
-  const info = getTokenExpirationInfo(DEFAULT_AQI_TOKEN);
-  if (info) {
-    if (info.isExpired) {
-      logger.error("Default bootstrap AQI token has expired. Supply VITE_AQI_TOKEN in .env.local.");
-    } else if (info.remainingDays <= 3) {
-      logger.warn(`Default bootstrap AQI token will expire in ${info.remainingDays} days.`);
-    }
-  }
+  const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost";
+  const url = new URL(`${AQI_PROXY_BASE}`, origin);
+  url.searchParams.set("endpoint", path);
 
-  return DEFAULT_AQI_TOKEN;
-}
-
-function saveToken(token) {
-  try {
-    if (typeof window !== "undefined" && window.localStorage) {
-      if (token && !isTokenExpired(token)) {
-        window.localStorage.setItem(STORAGE_KEYS.AQI_TOKEN, token);
-      } else {
-        window.localStorage.removeItem(STORAGE_KEYS.AQI_TOKEN);
-      }
-    }
-  } catch (e) {
-    logger.debug("Could not save token to localStorage:", e);
-  }
-}
-
-/**
- * Standardized authenticated fetch for apiserver.aqi.in with timeout and self-healing token retry
- */
-async function aqiFetch(path, params = {}, timeoutMs = 10000) {
-  const token = getToken();
-  const url = new URL(`${AQI_API_BASE}${path}`);
   Object.keys(params).forEach((key) => {
     if (params[key] !== undefined && params[key] !== null) {
-      url.searchParams.append(key, params[key]);
+      url.searchParams.append(key, String(params[key]));
     }
   });
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-  const headers = {
-    Authorization: `Bearer ${token}`,
-    Accept: "application/json"
-  };
+  const targetUrl = typeof window !== "undefined" ? `${url.pathname}${url.search}` : url.toString();
+  const { signal, cleanup } = buildTimeoutSignal(timeoutMs, externalSignal);
 
   try {
-    const response = await fetch(url.toString(), {
-      headers,
-      signal: controller.signal
+    const response = await fetch(targetUrl, {
+      headers: { Accept: "application/json" },
+      signal
     });
 
     if (response.status === 401) {
-      logger.warn("AQI API responded with 401 Unauthorized. Purging stale token...");
-      try {
-        if (typeof window !== "undefined" && window.localStorage) {
-          window.localStorage.removeItem(STORAGE_KEYS.AQI_TOKEN);
-        }
-      } catch {}
-
-      // If the current token was NOT the bootstrap token, retry once with the bootstrap token
-      if (token !== DEFAULT_AQI_TOKEN && !isTokenExpired(DEFAULT_AQI_TOKEN)) {
-        logger.info("Retrying telemetry request with fresh bootstrap token...");
-        clearTimeout(timeoutId);
-        const retryController = new AbortController();
-        const retryTimeoutId = setTimeout(() => retryController.abort(), timeoutMs);
-        try {
-          const retryRes = await fetch(url.toString(), {
-            headers: { ...headers, Authorization: `Bearer ${DEFAULT_AQI_TOKEN}` },
-            signal: retryController.signal
-          });
-          if (retryRes.ok) {
-            saveToken(DEFAULT_AQI_TOKEN);
-            return retryRes.json();
-          }
-        } finally {
-          clearTimeout(retryTimeoutId);
-        }
-      }
-
+      logger.warn("AQI proxy responded with 401 Unauthorized (token awaiting renewal).");
       throw new Error(
-        "AQI API Unauthorized (401). Telemetry authorization token has expired or is invalid. Set VITE_AQI_TOKEN in .env.local to update."
+        "Air quality telemetry is temporarily unavailable while service authorization is being refreshed."
       );
     }
 
@@ -163,13 +76,16 @@ async function aqiFetch(path, params = {}, timeoutMs = 10000) {
 
     return response.json();
   } catch (err) {
-    if (err.name === "AbortError") {
+    if (externalSignal?.aborted) {
+      throw err;
+    }
+    if (err.name === "TimeoutError" || err.name === "AbortError") {
       logger.warn(`Telemetry request timed out after ${timeoutMs}ms: ${path}`);
       throw new Error("Telemetry request timed out. Please check your network connection.");
     }
     throw err;
   } finally {
-    clearTimeout(timeoutId);
+    cleanup();
   }
 }
 
@@ -178,23 +94,39 @@ async function aqiFetch(path, params = {}, timeoutMs = 10000) {
  */
 export function calculateDistance(lat1, lon1, lat2, lon2) {
   if (
-    lat1 === undefined || lat1 === null ||
-    lon1 === undefined || lon1 === null ||
-    lat2 === undefined || lat2 === null ||
-    lon2 === undefined || lon2 === null
+    lat1 === undefined || lat1 === null || lat1 === "" ||
+    lon1 === undefined || lon1 === null || lon1 === "" ||
+    lat2 === undefined || lat2 === null || lat2 === "" ||
+    lon2 === undefined || lon2 === null || lon2 === ""
   ) {
     return null;
   }
+
+  const nLat1 = Number(lat1);
+  const nLon1 = Number(lon1);
+  const nLat2 = Number(lat2);
+  const nLon2 = Number(lon2);
+
+  if (
+    !Number.isFinite(nLat1) ||
+    !Number.isFinite(nLon1) ||
+    !Number.isFinite(nLat2) ||
+    !Number.isFinite(nLon2)
+  ) {
+    return null;
+  }
+
   const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const dLat = ((nLat2 - nLat1) * Math.PI) / 180;
+  const dLon = ((nLon2 - nLon1) * Math.PI) / 180;
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
+    Math.cos((nLat1 * Math.PI) / 180) *
+      Math.cos((nLat2 * Math.PI) / 180) *
       Math.sin(dLon / 2) *
       Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const clampedA = Math.max(0, Math.min(1, a));
+  const c = 2 * Math.atan2(Math.sqrt(clampedA), Math.sqrt(1 - clampedA));
   const d = R * c;
   return d < 1 ? `${Math.round(d * 1000)} m` : `${d.toFixed(1)} km`;
 }
@@ -213,7 +145,7 @@ export async function fetchAQIBySlug(slug, overrideType) {
     source: "web"
   });
 
-  if (result.status === "success" && result.data && result.data.length > 0) {
+  if (result.status?.toLowerCase() === "success" && Array.isArray(result.data) && result.data.length > 0) {
     return result.data[0];
   }
   throw new Error("No air quality telemetry found for this location.");
@@ -225,7 +157,6 @@ export async function fetchAQIBySlug(slug, overrideType) {
  */
 export async function fetchAQIByCoords(lat, lon) {
   try {
-    // 1. High precision: get nearest physical sensor in neighborhood (type=1)
     const nearestResult = await aqiFetch("/aqi/v2/getNearestLocation", {
       lat,
       long: lon,
@@ -235,17 +166,15 @@ export async function fetchAQIByCoords(lat, lon) {
 
     if (
       nearestResult.status?.toLowerCase() === "success" &&
-      nearestResult.data &&
+      Array.isArray(nearestResult.data) &&
       nearestResult.data.length > 0
     ) {
-      // First item is the closest sensor to these exact coordinates!
       return nearestResult.data[0];
     }
   } catch (err) {
     logger.debug("Type 1 nearest sensor lookup failed, trying anchor fallback:", err);
   }
 
-  // 2. Fallback to anchor city level (type=2)
   const anchorResult = await aqiFetch("/aqi/v2/getNearestLocation", {
     lat,
     long: lon,
@@ -253,7 +182,7 @@ export async function fetchAQIByCoords(lat, lon) {
     source: "web"
   });
 
-  if (anchorResult.status?.toLowerCase() === "success" && anchorResult.data && anchorResult.data.length > 0) {
+  if (anchorResult.status?.toLowerCase() === "success" && Array.isArray(anchorResult.data) && anchorResult.data.length > 0) {
     return anchorResult.data[0];
   }
 
@@ -282,27 +211,78 @@ export async function fetchNearbyStations(lat, lon) {
   }
 }
 
-/**
- * Fetch 24-hour hourly trend history for a city or station slug
- */
-export async function fetch24HourTrend(slug) {
-  try {
-    const parts = String(slug || "").split("/").filter(Boolean);
-    const slugType = parts.length >= 4 ? "locationId" : "cityId";
+const TREND_RANGE_ENDPOINTS = {
+  "24h": "/aqi/v3/getLast24HourHistory",
+  "7d": "/aqi/getLast7DaysHistory",
+  "30d": "/aqi/getLast30DaysHistory"
+};
 
-    const result = await aqiFetch("/aqi/v3/getLast24HourHistory", {
+function deriveCitySlug(slug) {
+  const parts = String(slug || "").split("/").filter(Boolean);
+  return parts.length >= 4 ? parts.slice(0, 3).join("/") : null;
+}
+
+async function fetchTrendSingle(endpoint, slug, signal) {
+  const parts = String(slug || "").split("/").filter(Boolean);
+  const slugType = parts.length >= 4 ? "locationId" : "cityId";
+
+  const result = await aqiFetch(
+    endpoint,
+    {
       slug,
       sensorname: "AQI-IN",
       slugType,
       source: "web"
-    });
+    },
+    { signal }
+  );
 
-    if (result.status === "success" && result.data) {
-      return result.data;
+  if (result.status?.toLowerCase() === "success" && result.data) {
+    return result.data;
+  }
+  return null;
+}
+
+/**
+ * Fetch hourly or multi-day AQI trend history ("24h" | "7d" | "30d") for a city or station slug.
+ * Falls back to parent city slug when a specific station returns empty or truncated (< 14 days on 30d) history.
+ */
+export async function fetchAQITrend(slug, range = "24h", options = {}) {
+  const { signal, fallbackSlug } =
+    options && typeof options === "object" && "aborted" in options
+      ? { signal: options, fallbackSlug: null }
+      : options || {};
+
+  const endpoint = TREND_RANGE_ENDPOINTS[range] || TREND_RANGE_ENDPOINTS["24h"];
+  const cityFallback = fallbackSlug || deriveCitySlug(slug);
+  const minExpected = range === "30d" ? 14 : 1;
+
+  try {
+    const primaryData = await fetchTrendSingle(endpoint, slug, signal);
+    const primaryLen = Array.isArray(primaryData?.averageArray) ? primaryData.averageArray.length : 0;
+
+    if (primaryLen >= minExpected || !cityFallback || cityFallback === slug) {
+      return primaryData;
     }
-    return null;
+
+    try {
+      const fallbackData = await fetchTrendSingle(endpoint, cityFallback, signal);
+      const fallbackLen = Array.isArray(fallbackData?.averageArray) ? fallbackData.averageArray.length : 0;
+      if (fallbackLen > primaryLen) {
+        return { ...fallbackData, isCityFallback: true };
+      }
+    } catch (fallbackErr) {
+      if (signal?.aborted || fallbackErr.name === "AbortError") {
+        throw fallbackErr;
+      }
+    }
+
+    return primaryData;
   } catch (err) {
-    logger.warn("Failed to fetch 24-hour AQI history:", err);
+    if (signal?.aborted || err.name === "AbortError") {
+      throw err;
+    }
+    logger.warn(`Failed to fetch ${range} AQI history:`, err);
     return null;
   }
 }
@@ -310,16 +290,20 @@ export async function fetch24HourTrend(slug) {
 /**
  * Search locations (cities, states, stations) for autocomplete
  */
-export async function searchAQILocations(query) {
+export async function searchAQILocations(query, signal) {
   if (!query || query.trim().length < 2) return [];
 
   try {
-    const result = await aqiFetch("/aqi/searchLocationCityStateCountry", {
-      searchString: query.trim(),
-      source: "web"
-    });
+    const result = await aqiFetch(
+      "/aqi/searchLocationCityStateCountry",
+      {
+        searchString: query.trim(),
+        source: "web"
+      },
+      { signal }
+    );
 
-    if (result.status === "success" && result.data) {
+    if (result.status?.toLowerCase() === "success" && result.data) {
       const cities = (result.data.cities || []).map((c) => ({
         ...c,
         isStation: false
@@ -327,12 +311,18 @@ export async function searchAQILocations(query) {
       const stations = (result.data.stations || []).map((s) => ({
         ...s,
         isStation: true,
-        displayName: s.station || s.location || (s.slug ? s.slug.split("/").pop().replace(/-/g, " ") : "Sensor")
+        displayName:
+          s.station ||
+          s.location ||
+          (s.slug ? s.slug.split("/").pop().replace(/-/g, " ") : "Sensor")
       }));
       return [...cities, ...stations].slice(0, 12);
     }
     return [];
   } catch (err) {
+    if (signal?.aborted || err.name === "AbortError") {
+      throw err;
+    }
     logger.warn("Failed location search:", err);
     return [];
   }
@@ -350,7 +340,7 @@ export async function fetchTopPollutedCities(limit = 6) {
       source: "web"
     });
 
-    if (result.status === "success" && Array.isArray(result.data)) {
+    if (result.status?.toLowerCase() === "success" && Array.isArray(result.data)) {
       return result.data;
     }
     return [];

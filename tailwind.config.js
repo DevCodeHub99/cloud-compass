@@ -1,22 +1,18 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: "class",
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
+  content: ["./index.html", "./src/**/*.{js,jsx}"],
   theme: {
     extend: {
-      colors: {
-        aqi: {
-          good: "#009966",
-          satisfactory: "#ffde33",
-          moderate: "#ff9933",
-          poor: "#cc0033",
-          veryPoor: "#660099",
-          severe: "#7e0023",
-        }
-      }
+      screens: {
+        xs: "475px",
+      },
+      boxShadow: {
+        xs: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+      },
+      dropShadow: {
+        xs: "0 1px 1px rgb(0 0 0 / 0.05)",
+      },
     },
   },
   plugins: [],

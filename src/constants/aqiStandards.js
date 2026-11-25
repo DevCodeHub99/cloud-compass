@@ -77,17 +77,32 @@ export const CPCB_BANDS = [
   }
 ];
 
-export function getCPCBBadge(aqiVal) {
-  const val = Number(aqiVal) || 0;
-  for (const band of CPCB_BANDS) {
+function resolveAQIBand(bands, aqiVal) {
+  const parsed = aqiVal === null || aqiVal === undefined || aqiVal === "" ? 0 : Number(aqiVal);
+  const val = Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+  for (const band of bands) {
     if (val <= band.max) {
       return { ...band, value: val };
     }
   }
-  return { ...CPCB_BANDS[CPCB_BANDS.length - 1], value: val };
+  return { ...bands[bands.length - 1], value: val };
 }
 
-export const US_EPA_BANDS = [
+export function getCPCBBadge(aqiVal) {
+  return resolveAQIBand(CPCB_BANDS, aqiVal);
+}
+
+/**
+ * Returns accessible inline foreground/background colors for a resolved AQI badge.
+ */
+export function getBadgeStyle(badge) {
+  return {
+    backgroundColor: badge?.color || "#009966",
+    color: badge?.textColor === "text-gray-900" ? "#111827" : "#ffffff"
+  };
+}
+
+const US_EPA_BANDS = [
   {
     min: 0,
     max: 50,
@@ -139,13 +154,18 @@ export const US_EPA_BANDS = [
 ];
 
 export function getUSEPABadge(aqiVal) {
-  const val = Number(aqiVal) || 0;
-  for (const band of US_EPA_BANDS) {
-    if (val <= band.max) {
-      return { ...band, value: val };
-    }
-  }
-  return { ...US_EPA_BANDS[US_EPA_BANDS.length - 1], value: val };
+  return resolveAQIBand(US_EPA_BANDS, aqiVal);
+}
+
+/**
+ * Parses server timestamps safely across browsers (preserving ISO 'T' separator
+ * and stripping trailing 'Z' since aqi.in timestamps represent sensor local wall time).
+ */
+export function parseServerTimestamp(dateStr) {
+  if (!dateStr) return null;
+  const isoLocal = String(dateStr).trim().replace(/(\.\d+)?Z$/, "").replace(" ", "T");
+  const date = new Date(isoLocal);
+  return Number.isNaN(date.getTime()) ? null : date;
 }
 
 /**
@@ -155,9 +175,8 @@ export function getUSEPABadge(aqiVal) {
 export function formatAQITimestamp(dateStr) {
   if (!dateStr) return { time: "Live Telemetry", relative: "" };
   try {
-    const cleanStr = String(dateStr).replace(/\.000Z$|Z$/, "").replace("T", " ");
-    const date = new Date(cleanStr);
-    if (isNaN(date.getTime())) return { time: "Live Telemetry", relative: "" };
+    const date = parseServerTimestamp(dateStr);
+    if (!date) return { time: "Live Telemetry", relative: "" };
 
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -170,11 +189,11 @@ export function formatAQITimestamp(dateStr) {
     const diffMs = now - date;
     let relative = "";
     if (diffMs >= 0 && diffMs < 1000 * 60 * 60 * 24) {
-      const mins = Math.floor(diffMs / 60000);
-      if (mins < 2) relative = "Just now";
-      else if (mins < 60) relative = `${mins}m ago`;
+      const diffMins = Math.floor(diffMs / 60000);
+      if (diffMins < 2) relative = "Just now";
+      else if (diffMins < 60) relative = `${diffMins}m ago`;
       else {
-        const hrs = Math.floor(mins / 60);
+        const hrs = Math.floor(diffMins / 60);
         relative = `${hrs}h ago`;
       }
     }
@@ -322,26 +341,14 @@ export function formatLocationInfo(data = {}) {
   let primary = "";
   let secondary = "";
 
-  if (neighborhood && city && neighborhood.toLowerCase() !== city.toLowerCase()) {
-    primary = `${neighborhood}, ${city}`;
-    const secondaryParts = [];
-    if (rawState && rawState.toLowerCase() !== city.toLowerCase()) {
-      secondaryParts.push(rawState);
-    }
-    if (rawCountry) {
-      secondaryParts.push(rawCountry);
-    }
-    secondary = secondaryParts.join(", ");
-  } else if (city) {
-    primary = city;
-    const secondaryParts = [];
-    if (rawState && rawState.toLowerCase() !== city.toLowerCase()) {
-      secondaryParts.push(rawState);
-    }
-    if (rawCountry) {
-      secondaryParts.push(rawCountry);
-    }
-    secondary = secondaryParts.join(", ");
+  if (city) {
+    primary =
+      neighborhood && neighborhood.toLowerCase() !== city.toLowerCase()
+        ? `${neighborhood}, ${city}`
+        : city;
+    secondary = [rawState && rawState.toLowerCase() !== city.toLowerCase() ? rawState : "", rawCountry]
+      .filter(Boolean)
+      .join(", ");
   } else {
     primary = parts[0] || "Local Area";
     secondary = parts.slice(1).join(", ");

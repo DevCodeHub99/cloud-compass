@@ -1,9 +1,9 @@
-import React from "react";
 import { CurrentWeather } from "./CurrentWeather";
 import { HourlyForecast } from "./HourlyForecast";
 import { DailyForecast } from "./DailyForecast";
 import { WeatherMetricsGrid } from "./WeatherMetricsGrid";
 import { SunTimeline } from "./SunTimeline";
+import { SectionCard } from "../common/SectionCard";
 
 export function WeatherView({
   weatherData,
@@ -46,13 +46,7 @@ export function WeatherView({
       />
 
       {/* 4. Deep Meteorological Insights Grid (UV, Wind, Dew Point, Pressure, Visibility, Clouds) */}
-      <section
-        className={`content-visibility-auto backdrop-blur-xl p-3.5 sm:p-6 lg:p-7 rounded-3xl max-w-4xl mx-auto border transition-all duration-300 ${
-          theme === "dark"
-            ? "bg-slate-900/95 text-white border-slate-800 shadow-2xl"
-            : "bg-white text-slate-800 border-slate-200/90 shadow-xl shadow-slate-200/50"
-        }`}
-      >
+      <SectionCard as="section" theme={theme} className="content-visibility-auto">
         <div className="mb-4 pb-2 border-b border-slate-100 dark:border-slate-800">
           <h3 className={`text-base sm:text-lg font-black ${theme === "dark" ? "text-white" : "text-slate-900"}`}>
             Atmospheric Conditions & Metrics
@@ -62,7 +56,7 @@ export function WeatherView({
           </p>
         </div>
         <WeatherMetricsGrid weatherData={weatherData} theme={theme} />
-      </section>
+      </SectionCard>
     </div>
   );
 }

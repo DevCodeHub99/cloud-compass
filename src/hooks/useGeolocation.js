@@ -2,19 +2,15 @@ import { useState, useCallback } from "react";
 
 export function useGeolocation() {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
 
   const getPosition = useCallback(() => {
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
-        const err = new Error("Geolocation is not supported by your browser");
-        setError(err.message);
-        reject(err);
+        reject(new Error("Geolocation is not supported by your browser"));
         return;
       }
 
       setLoading(true);
-      setError(null);
 
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -34,7 +30,6 @@ export function useGeolocation() {
           } else if (err.code === err.TIMEOUT) {
             message = "Location request timed out.";
           }
-          setError(message);
           reject(new Error(message));
         },
         {
@@ -46,5 +41,5 @@ export function useGeolocation() {
     });
   }, []);
 
-  return { getPosition, loading, error };
+  return { getPosition, loading };
 }

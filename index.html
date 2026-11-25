@@ -4,7 +4,6 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 
   <!-- Primary SEO Meta Tags -->
   <title>CloudCompass | Live Air Quality Index (AQI) & Real-Time Weather Forecast</title>
@@ -21,7 +20,7 @@
   <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
   <link rel="canonical" href="https://cloudcompass99.vercel.app/" />
 
-  <!-- Performance & Preconnect Resource Hints -->
+  <!-- Performance & Preconnect Resource Hints (Weather SVG icons) -->
   <link rel="preconnect" href="https://apiserver.aqi.in" crossorigin />
   <link rel="dns-prefetch" href="https://apiserver.aqi.in" />
 
@@ -43,7 +42,7 @@
   <link rel="apple-touch-icon"
     href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌤️</text></svg>" />
 
-  <!-- Open Graph Protocol (Facebook, LinkedIn, Discord, WhatsApp) -->
+  <!-- Open Graph Protocol -->
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://cloudcompass99.vercel.app/" />
   <meta property="og:site_name" content="CloudCompass" />
@@ -51,19 +50,13 @@
   <meta property="og:title" content="CloudCompass | Live Air Quality Index (AQI) & Real-Time Weather Forecast" />
   <meta property="og:description"
     content="Real-time environmental intelligence platform: track live AQI, PM2.5, PM10, CPCB/US EPA standards, and 24-hour meteorological weather forecasts." />
-  <meta property="og:image" content="https://cloudcompass99.vercel.app/og-preview.png" />
-  <meta property="og:image:width" content="1200" />
-  <meta property="og:image:height" content="630" />
-  <meta property="og:image:alt" content="CloudCompass - Real-Time Air Quality & Weather Forecast Platform" />
 
   <!-- Twitter / X Card Meta Tags -->
-  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:card" content="summary" />
   <meta name="twitter:url" content="https://cloudcompass99.vercel.app/" />
   <meta name="twitter:title" content="CloudCompass | Live Air Quality Index & Real-Time Weather" />
   <meta name="twitter:description"
     content="Monitor real-time air pollution (AQI), PM2.5, PM10, neighborhood physical sensors, and accurate 24-hour meteorological forecasts." />
-  <meta name="twitter:image" content="https://cloudcompass99.vercel.app/og-preview.png" />
-  <meta name="twitter:image:alt" content="CloudCompass Environmental Intelligence Dashboard" />
 
   <!-- Schema.org JSON-LD Structured Data for Google Rich Results -->
   <script type="application/ld+json">
@@ -88,7 +81,7 @@
             "Real-Time Air Quality Index (AQI)",
             "PM2.5 and PM10 Pollutant Tracking",
             "Indian CPCB and US EPA Air Standards",
-            "24-Hour Diurnal Pollution Bar Histogram",
+            "24H, 7D & 30D Pollution History Bar Histogram",
             "Closest Physical Sensor Telemetry",
             "NOAA Solar Trajectory Engine with Real-Time Sun Position",
             "5-Day Meteorological Outlook with Range Bars",
@@ -115,22 +108,8 @@
     }
   </script>
 
-  <!-- Theme Pre-Hydration: Eliminates Flash of Unstyled Content (FOUC) -->
-  <script>
-    (function () {
-      try {
-        var stored = localStorage.getItem("cloudcompass_theme");
-        var theme = stored ? JSON.parse(stored) : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-        if (theme === "dark") {
-          document.documentElement.className = "dark";
-        } else {
-          document.documentElement.className = "light";
-        }
-      } catch (e) {
-        document.documentElement.className = "light";
-      }
-    })();
-  </script>
+  <!-- Theme Pre-Hydration (CSP-compliant external script): Eliminates FOUC -->
+  <script src="/theme-init.js"></script>
 </head>
 
 <body class="m-0 font-sans antialiased text-gray-800">

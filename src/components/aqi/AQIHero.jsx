@@ -2,9 +2,11 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   getCPCBBadge,
   getUSEPABadge,
+  getBadgeStyle,
   formatAQITimestamp,
   formatLocationInfo
 } from "../../constants/aqiStandards";
+import { SectionCard } from "../common/SectionCard";
 import {
   Droplets,
   Wind,
@@ -37,6 +39,36 @@ export const AQIHero = React.memo(function AQIHero({ aqiData, onLocationClick, l
   const isDark = theme === "dark";
   const [standard, setStandard] = useState("cpcb"); // "cpcb" | "usepa"
   const [hoverAQI, setHoverAQI] = useState(null);
+  const rafIdRef = useRef(null);
+
+  const updateScrubAQI = useCallback((clientX, rect) => {
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+    rafIdRef.current = requestAnimationFrame(() => {
+      if (!rect || rect.width <= 0) return;
+      const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+      setHoverAQI(Math.round(pct * 500));
+    });
+  }, []);
+
+  const clearScrubAQI = useCallback(() => {
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+    setHoverAQI(null);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+    };
+  }, []);
+
+  const handleSpectrumTouch = useCallback(
+    (e) => {
+      if (!e.touches || e.touches.length === 0) return;
+      const rect = e.currentTarget.getBoundingClientRect();
+      updateScrubAQI(e.touches[0].clientX, rect);
+    },
+    [updateScrubAQI]
+  );
 
   if (!aqiData) return null;
 
@@ -65,46 +97,10 @@ export const AQIHero = React.memo(function AQIHero({ aqiData, onLocationClick, l
 
   const spectrumBands = standard === "cpcb" ? CPCB_SPECTRUM_BANDS : EPA_SPECTRUM_BANDS;
 
-  const rafIdRef = useRef(null);
-
-  const updateScrubAQI = useCallback((clientX, rect) => {
-    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
-    rafIdRef.current = requestAnimationFrame(() => {
-      const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-      setHoverAQI(Math.round(pct * 500));
-    });
-  }, []);
-
-  const clearScrubAQI = useCallback(() => {
-    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
-    setHoverAQI(null);
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
-    };
-  }, []);
-
-  const handleSpectrumTouch = useCallback(
-    (e) => {
-      if (!e.touches || e.touches.length === 0) return;
-      const rect = e.currentTarget.getBoundingClientRect();
-      updateScrubAQI(e.touches[0].clientX, rect);
-    },
-    [updateScrubAQI]
-  );
-
   return (
     <div className="max-w-4xl mx-auto space-y-4">
       {/* Inspired Atmospheric AQI Master Card */}
-      <div
-        className={`relative ${
-          isDark
-            ? "bg-slate-900/95 text-white border-slate-800 shadow-2xl"
-            : "bg-white text-slate-800 border-slate-200/90 shadow-xl shadow-slate-200/50"
-        } backdrop-blur-xl p-4 sm:p-6 lg:p-7 rounded-3xl border overflow-hidden transition-all duration-300`}
-      >
+      <SectionCard theme={theme} className="relative overflow-hidden p-4 sm:p-6 lg:p-7">
         {/* Ambient atmospheric glows reflecting current AQI level (only in dark mode to keep light mode pristine) */}
         {isDark && (
           <>
@@ -321,8 +317,10 @@ export const AQIHero = React.memo(function AQIHero({ aqiData, onLocationClick, l
                   Air Quality is
                 </span>
                 <span
-                  className="inline-flex items-center px-4 py-1.5 rounded-xl text-base font-extrabold shadow-md text-white tracking-wide"
-                  style={{ backgroundColor: activeBadge.color }}
+                  className={`inline-flex items-center px-4 py-1.5 rounded-xl text-base font-extrabold shadow-md tracking-wide ${
+                    activeBadge.textColor || "text-white"
+                  }`}
+                  style={getBadgeStyle(activeBadge)}
                 >
                   {activeBadge.category}
                 </span>
@@ -435,8 +433,8 @@ export const AQIHero = React.memo(function AQIHero({ aqiData, onLocationClick, l
                   {/* Floating scrubber tooltip when user hovers along the scale */}
                   {hoverAQI !== null && (
                     <div
-                      className="absolute -top-8 text-[11px] font-black px-2.5 py-0.5 rounded-full text-white shadow-xl whitespace-nowrap animate-in fade-in zoom-in-95 duration-150 border border-white/30"
-                      style={{ backgroundColor: displayBadge.color }}
+                      className="absolute -top-8 text-[11px] font-black px-2.5 py-0.5 rounded-full shadow-xl whitespace-nowrap animate-in fade-in zoom-in-95 duration-150 border border-white/30"
+                      style={getBadgeStyle(displayBadge)}
                     >
                       {displayAQI} &bull; {displayBadge.category}
                     </div>
@@ -488,7 +486,8 @@ export const AQIHero = React.memo(function AQIHero({ aqiData, onLocationClick, l
                     alt={weather.condition.text || "Weather"}
                     className="w-11 h-11 object-contain drop-shadow-sm"
                     onError={(e) => {
-                      e.target.style.display = "none";
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.style.display = "none";
                     }}
                   />
                 ) : (
@@ -500,14 +499,14 @@ export const AQIHero = React.memo(function AQIHero({ aqiData, onLocationClick, l
                       isDark ? "text-white" : "text-slate-900"
                     }`}
                   >
-                    {weather.temp_c !== undefined ? `${weather.temp_c}°C` : "N/A"}
+                    {weather.temp_c != null ? `${weather.temp_c}°C` : "N/A"}
                   </div>
                   <div
                     className={`text-xs font-semibold capitalize truncate max-w-[140px] ${
                       isDark ? "text-slate-300" : "text-slate-600"
                     }`}
                   >
-                    {weather.condition?.text || (weather.temp_c ? "Atmospheric Sensor" : "Weather Offline")}
+                    {weather.condition?.text || (weather.temp_c != null ? "Atmospheric Sensor" : "Weather Offline")}
                   </div>
                 </div>
               </div>
@@ -541,7 +540,7 @@ export const AQIHero = React.memo(function AQIHero({ aqiData, onLocationClick, l
                     isDark ? "text-white" : "text-slate-900"
                   }`}
                 >
-                  {weather.humidity !== undefined ? `${weather.humidity}%` : "N/A"}
+                  {weather.humidity != null ? `${weather.humidity}%` : "N/A"}
                 </div>
               </div>
 
@@ -559,7 +558,7 @@ export const AQIHero = React.memo(function AQIHero({ aqiData, onLocationClick, l
                     isDark ? "text-white" : "text-slate-900"
                   }`}
                 >
-                  {weather.wind_kph !== undefined ? `${weather.wind_kph} km/h` : "N/A"}
+                  {weather.wind_kph != null ? `${weather.wind_kph} km/h` : "N/A"}
                 </div>
               </div>
 
@@ -577,7 +576,7 @@ export const AQIHero = React.memo(function AQIHero({ aqiData, onLocationClick, l
                     isDark ? "text-white" : "text-slate-900"
                   }`}
                 >
-                  {weather.uv !== undefined ? weather.uv : "0"}
+                  {weather.uv != null ? weather.uv : "0"}
                 </div>
               </div>
             </div>
@@ -609,7 +608,7 @@ export const AQIHero = React.memo(function AQIHero({ aqiData, onLocationClick, l
             </p>
           </div>
         </div>
-      </div>
+      </SectionCard>
     </div>
   );
 });

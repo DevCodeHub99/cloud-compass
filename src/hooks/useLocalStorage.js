@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 const memoryStore = new Map();
 
@@ -32,8 +32,16 @@ function safeSet(key, value) {
 
 export function useLocalStorage(key, initialValue) {
   const [value, setValue] = useState(() => safeGet(key, initialValue));
+  const prevKeyRef = useRef(key);
+  const initialRef = useRef(initialValue);
+  initialRef.current = initialValue;
 
   useEffect(() => {
+    if (prevKeyRef.current !== key) {
+      prevKeyRef.current = key;
+      setValue(safeGet(key, initialRef.current));
+      return;
+    }
     safeSet(key, value);
   }, [key, value]);
 

@@ -10,6 +10,24 @@ import {
   SunMedium
 } from "lucide-react";
 import { getUVCategory, getWindDirection } from "../../utils/weatherUtils";
+import { DEFAULT_WEATHER_ICON } from "../../constants/api";
+import { SectionCard } from "../common/SectionCard";
+
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+function formatCityDate(offsetMinutes) {
+  if (typeof offsetMinutes === "number" && Number.isFinite(offsetMinutes)) {
+    const shifted = new Date(Date.now() + offsetMinutes * 60000);
+    return `${WEEKDAYS[shifted.getUTCDay()]}, ${shifted.getUTCDate()} ${MONTHS[shifted.getUTCMonth()]} ${shifted.getUTCFullYear()}`;
+  }
+  return new Date().toLocaleDateString(undefined, {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric"
+  });
+}
 
 export const CurrentWeather = React.memo(function CurrentWeather({
   weatherData,
@@ -20,30 +38,25 @@ export const CurrentWeather = React.memo(function CurrentWeather({
   const isDark = theme === "dark";
   if (!weatherData) return null;
 
-  const { city, current } = weatherData;
+  const { city, current, astronomy } = weatherData;
+  const currentDate = formatCityDate(astronomy?.effectiveOffsetMinutes);
 
-  const currentDate = new Date().toLocaleDateString(undefined, {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    year: "numeric"
-  });
-
-  const windKph = current.wind_kph ?? (current.windSpeed ? Math.round(current.windSpeed * 3.6) : 0);
+  const windKph = current.wind_kph ?? (current.windSpeed != null ? Math.round(current.windSpeed * 3.6) : 0);
   const windDir = current.wind_dir || getWindDirection(current.wind_degree);
-  const uvVal = current.uv !== undefined ? Number(current.uv) : 3;
+  const uvVal = current.uv != null ? Number(current.uv) : 3;
   const uvInfo = getUVCategory(uvVal);
 
-  const iconUrl = current.icon || "https://apiserver.aqi.in/uploads/weather-icons/1.svg";
+  const iconUrl = current.icon || DEFAULT_WEATHER_ICON;
+
+  const quickStats = [
+    { label: "Wind", icon: Wind, iconClass: "text-teal-500", value: `${windDir} ${windKph} km/h` },
+    { label: "Humidity", icon: Droplets, iconClass: "text-cyan-500", value: `${current.humidity}%` },
+    { label: "Pressure", icon: Gauge, iconClass: "text-indigo-500", value: `${current.pressure} hPa` },
+    { label: "UV Index", icon: SunMedium, iconClass: "text-amber-500", value: `${uvVal} (${uvInfo.level})`, valueClass: uvInfo.color }
+  ];
 
   return (
-    <div
-      className={`backdrop-blur-xl p-3.5 sm:p-6 lg:p-7 rounded-3xl max-w-4xl mx-auto border transition-all duration-300 ${
-        isDark
-          ? "bg-slate-900/95 text-white border-slate-800 shadow-2xl"
-          : "bg-white text-slate-800 border-slate-200/90 shadow-xl shadow-slate-200/50"
-      }`}
-    >
+    <SectionCard theme={theme}>
       {/* Top Meta Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5 pb-4 border-b border-slate-100 dark:border-slate-800/80">
         <div>
@@ -126,7 +139,8 @@ export const CurrentWeather = React.memo(function CurrentWeather({
               alt={current.condition || "Weather"}
               className="w-20 h-20 sm:w-24 sm:h-24 drop-shadow-md filter select-none"
               onError={(e) => {
-                e.target.src = "https://apiserver.aqi.in/uploads/weather-icons/1.svg";
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = DEFAULT_WEATHER_ICON;
               }}
             />
             <div>
@@ -165,71 +179,26 @@ export const CurrentWeather = React.memo(function CurrentWeather({
 
       {/* Quick Micro-Stats Strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
-        <div
-          className={`p-2.5 sm:p-3 rounded-xl border flex items-center space-x-2.5 min-h-[58px] sm:min-h-[64px] ${
-            isDark ? "bg-slate-800/60 border-slate-700/60" : "bg-slate-50 border-slate-200/70"
-          }`}
-        >
-          <Wind className="w-4 h-4 text-teal-500 flex-shrink-0" />
-          <div className="truncate">
-            <p className={`text-[10px] font-semibold uppercase ${isDark ? "text-slate-400" : "text-slate-500"}`}>
-              Wind
-            </p>
-            <p className={`font-bold truncate ${isDark ? "text-white" : "text-slate-900"}`}>
-              {windDir} {windKph} km/h
-            </p>
+        {quickStats.map(({ label, icon: Icon, iconClass, value, valueClass }) => (
+          <div
+            key={label}
+            className={`p-2.5 sm:p-3 rounded-xl border flex items-center space-x-2.5 min-h-[58px] sm:min-h-[64px] ${
+              isDark ? "bg-slate-800/60 border-slate-700/60" : "bg-slate-50 border-slate-200/70"
+            }`}
+          >
+            <Icon className={`w-4 h-4 ${iconClass} flex-shrink-0`} />
+            <div className="truncate">
+              <p className={`text-[10px] font-semibold uppercase ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+                {label}
+              </p>
+              <p className={`font-bold truncate ${valueClass || (isDark ? "text-white" : "text-slate-900")}`}>
+                {value}
+              </p>
+            </div>
           </div>
-        </div>
-
-        <div
-          className={`p-2.5 sm:p-3 rounded-xl border flex items-center space-x-2.5 min-h-[58px] sm:min-h-[64px] ${
-            isDark ? "bg-slate-800/60 border-slate-700/60" : "bg-slate-50 border-slate-200/70"
-          }`}
-        >
-          <Droplets className="w-4 h-4 text-cyan-500 flex-shrink-0" />
-          <div>
-            <p className={`text-[10px] font-semibold uppercase ${isDark ? "text-slate-400" : "text-slate-500"}`}>
-              Humidity
-            </p>
-            <p className={`font-bold ${isDark ? "text-white" : "text-slate-900"}`}>
-              {current.humidity}%
-            </p>
-          </div>
-        </div>
-
-        <div
-          className={`p-2.5 sm:p-3 rounded-xl border flex items-center space-x-2.5 min-h-[58px] sm:min-h-[64px] ${
-            isDark ? "bg-slate-800/60 border-slate-700/60" : "bg-slate-50 border-slate-200/70"
-          }`}
-        >
-          <Gauge className="w-4 h-4 text-indigo-500 flex-shrink-0" />
-          <div>
-            <p className={`text-[10px] font-semibold uppercase ${isDark ? "text-slate-400" : "text-slate-500"}`}>
-              Pressure
-            </p>
-            <p className={`font-bold ${isDark ? "text-white" : "text-slate-900"}`}>
-              {current.pressure} hPa
-            </p>
-          </div>
-        </div>
-
-        <div
-          className={`p-2.5 sm:p-3 rounded-xl border flex items-center space-x-2.5 min-h-[58px] sm:min-h-[64px] ${
-            isDark ? "bg-slate-800/60 border-slate-700/60" : "bg-slate-50 border-slate-200/70"
-          }`}
-        >
-          <SunMedium className="w-4 h-4 text-amber-500 flex-shrink-0" />
-          <div>
-            <p className={`text-[10px] font-semibold uppercase ${isDark ? "text-slate-400" : "text-slate-500"}`}>
-              UV Index
-            </p>
-            <p className={`font-bold ${uvInfo.color}`}>
-              {uvVal} ({uvInfo.level})
-            </p>
-          </div>
-        </div>
+        ))}
       </div>
-    </div>
+    </SectionCard>
   );
 });
 

@@ -25,11 +25,11 @@ export const WeatherMetricsGrid = React.memo(function WeatherMetricsGrid({ weath
   const { current } = weatherData;
 
   // UV index
-  const uvVal = current.uv !== undefined ? Number(current.uv) : 3;
+  const uvVal = current.uv != null ? Number(current.uv) : 3;
   const uvInfo = getUVCategory(uvVal);
 
   // Wind
-  const windKph = current.wind_kph ?? (current.windSpeed ? Math.round(current.windSpeed * 3.6) : 0);
+  const windKph = current.wind_kph ?? (current.windSpeed != null ? Math.round(current.windSpeed * 3.6) : 0);
   const windDeg = current.wind_degree ?? 0;
   const windDir = current.wind_dir || getWindDirection(windDeg);
   const beaufort = getBeaufortDescription(windKph);
@@ -45,13 +45,13 @@ export const WeatherMetricsGrid = React.memo(function WeatherMetricsGrid({ weath
   const pressureStatus = getPressureStatus(pressure);
 
   // Visibility
-  const visKm = current.vis_km !== undefined ? current.vis_km : 10;
+  const visKm = current.vis_km != null ? current.vis_km : 10;
   const visStatus = getVisibilityDescription(visKm);
 
   // Cloud cover
-  const cloud = current.cloud !== undefined ? current.cloud : (current.condition?.toLowerCase().includes("cloud") ? 65 : 20);
+  const cloud = current.cloud != null ? current.cloud : (current.condition?.toLowerCase().includes("cloud") ? 65 : 20);
 
-  const cardBase = `p-3 sm:p-4 rounded-2xl border transition-all duration-300 flex flex-col justify-between min-h-[110px] sm:min-h-[118px] hover:-translate-y-1 hover:shadow-lg cursor-pointer group ${
+  const cardBase = `p-3 sm:p-4 rounded-2xl border transition-all duration-300 flex flex-col justify-between min-h-[110px] sm:min-h-[118px] hover:-translate-y-1 hover:shadow-lg group ${
     isDark
       ? "bg-slate-800/80 border-slate-700/80 text-white hover:border-teal-500/40"
       : "bg-slate-50 border-slate-200/90 text-slate-900 hover:border-teal-400 hover:bg-white"

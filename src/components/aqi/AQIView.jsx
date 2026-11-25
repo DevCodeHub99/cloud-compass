@@ -1,4 +1,3 @@
-import React from "react";
 import { AQIHero } from "./AQIHero";
 import { PollutantGrid } from "./PollutantGrid";
 import { SensorWeather } from "./SensorWeather";
@@ -10,6 +9,9 @@ import { formatLocationInfo } from "../../constants/aqiStandards";
 export function AQIView({
   aqiData,
   trendData,
+  trendRange = "24h",
+  trendLoading = false,
+  onTrendRangeChange,
   nearbyStations,
   topCities,
   userCoords,
@@ -37,7 +39,13 @@ export function AQIView({
         theme={theme}
       />
       <SensorWeather weather={aqiData.weather} theme={theme} />
-      <TrendChart trendData={trendData} theme={theme} />
+      <TrendChart
+        trendData={trendData}
+        range={trendRange}
+        loading={trendLoading}
+        onRangeChange={onTrendRangeChange}
+        theme={theme}
+      />
       <NearbyStations
         stations={nearbyStations}
         activeStationSlug={activeStationSlug}

@@ -1,4 +1,4 @@
-import { describe, it, beforeEach } from "node:test";
+import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import {
   getCityFromTimezone,
@@ -9,6 +9,18 @@ import {
 import { STORAGE_KEYS } from "../src/constants/api.js";
 
 describe("Progressive Location Discovery Engine", () => {
+  const originalWindow = globalThis.window;
+  const originalFetch = globalThis.fetch;
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+    if (originalWindow === undefined) {
+      delete globalThis.window;
+    } else {
+      globalThis.window = originalWindow;
+    }
+  });
+
   describe("getCityFromTimezone", () => {
     it("safely resolves system IANA timezone according to environment", () => {
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -17,7 +29,6 @@ describe("Progressive Location Discovery Engine", () => {
         assert.equal(typeof city, "string");
         assert.ok(city.length > 1);
       } else {
-        // In headless CI environments (e.g. GitHub Actions ubuntu-latest), default timezone is UTC
         assert.equal(city, null);
       }
     });
@@ -58,7 +69,6 @@ describe("Progressive Location Discovery Engine", () => {
   });
 
   describe("Session Location Persistence (localStorage)", () => {
-    // In Node test environment, window.localStorage is mocked via global simulation
     const mockStorage = new Map();
     beforeEach(() => {
       mockStorage.clear();
@@ -71,7 +81,7 @@ describe("Progressive Location Discovery Engine", () => {
       };
     });
 
-    it("persists and restores location payload", () => {
+    it("persists and restores location payload including 0,0 coordinates", () => {
       const sampleLoc = {
         city: "Mumbai",
         country: "IN",
@@ -81,9 +91,11 @@ describe("Progressive Location Discovery Engine", () => {
       };
 
       saveLastLocation(sampleLoc);
-      const restored = getSavedLocation();
+      assert.deepEqual(getSavedLocation(), sampleLoc);
 
-      assert.deepEqual(restored, sampleLoc);
+      const zeroCoordLoc = { lat: 0, lon: 0 };
+      saveLastLocation(zeroCoordLoc);
+      assert.deepEqual(getSavedLocation(), zeroCoordLoc);
     });
 
     it("returns null when storage is empty or corrupted", () => {
@@ -95,13 +107,33 @@ describe("Progressive Location Discovery Engine", () => {
   });
 
   describe("detectApproximateLocation", () => {
-    it("falls back to timezone heuristic or static anchor when network APIs are unreachable", async () => {
-      // In sandbox mode without network access, detectApproximateLocation should resolve cleanly
+    it("resolves from /api/geo when Edge IP headers are available", async () => {
+      globalThis.fetch = async (url) => {
+        if (String(url).includes("/api/geo")) {
+          return new Response(
+            JSON.stringify({ city: "Null Island", country: "XX", lat: 0, lon: 0 }),
+            { status: 200, headers: { "Content-Type": "application/json" } }
+          );
+        }
+        throw new Error("unexpected network call");
+      };
+
+      const location = await detectApproximateLocation();
+      assert.equal(location.source, "edge-ip");
+      assert.equal(location.lat, 0);
+      assert.equal(location.lon, 0);
+    });
+
+    it("falls back to timezone heuristic or static anchor when network APIs fail", async () => {
+      globalThis.fetch = async () => {
+        throw new Error("network unavailable");
+      };
+
       const location = await detectApproximateLocation();
       assert.ok(location);
       assert.ok(location.city, "Resolved location must include a city name");
       assert.ok(
-        ["edge-ip", "client-ip", "browser-timezone", "static-fallback"].includes(location.source),
+        ["browser-timezone", "static-fallback"].includes(location.source),
         `Unexpected source: ${location.source}`
       );
     });

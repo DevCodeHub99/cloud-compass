@@ -1,20 +1,19 @@
 import React from "react";
 import { Flame } from "lucide-react";
-import { getCPCBBadge } from "../../constants/aqiStandards";
+import { getCPCBBadge, getBadgeStyle } from "../../constants/aqiStandards";
+import { SectionCard } from "../common/SectionCard";
 
-export const TopPollutedCities = React.memo(function TopPollutedCities({ cities = [], onSelectCity, theme = "light" }) {
+export const TopPollutedCities = React.memo(function TopPollutedCities({
+  cities = [],
+  onSelectCity,
+  theme = "light"
+}) {
   const isDark = theme === "dark";
 
   if (!cities || cities.length === 0) return null;
 
   return (
-    <div
-      className={`content-visibility-auto backdrop-blur-xl p-3.5 sm:p-6 lg:p-7 rounded-3xl max-w-4xl mx-auto mt-4 transition-all duration-300 border ${
-        isDark
-          ? "bg-slate-900/95 text-white border-slate-800 shadow-2xl"
-          : "bg-white text-slate-800 border-slate-200/90 shadow-xl shadow-slate-200/50"
-      }`}
-    >
+    <SectionCard theme={theme} className="content-visibility-auto mt-4">
       <div className="flex items-center justify-between gap-3 mb-4">
         <div>
           <h3
@@ -51,10 +50,11 @@ export const TopPollutedCities = React.memo(function TopPollutedCities({ cities 
           const rank = item.rank || idx + 1;
 
           return (
-            <div
+            <button
               key={idx}
+              type="button"
               onClick={() => onSelectCity && item.city && onSelectCity(item.city)}
-              className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between group shadow-xs hover:shadow-md active:scale-[0.98] ${
+              className={`w-full text-left p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between group shadow-xs hover:shadow-md active:scale-[0.98] ${
                 isDark
                   ? "bg-slate-800/80 hover:bg-slate-800 border-slate-700/80 hover:border-rose-500/60 text-white"
                   : "bg-slate-50/80 hover:bg-white border-slate-200 hover:border-rose-300 text-slate-900"
@@ -88,20 +88,20 @@ export const TopPollutedCities = React.memo(function TopPollutedCities({ cities 
 
               <div className="text-right">
                 <span
-                  className="inline-block text-xs font-extrabold px-2 py-0.5 rounded-md text-white shadow-xs"
-                  style={{ backgroundColor: badge.color }}
+                  className="inline-block text-xs font-extrabold px-2 py-0.5 rounded-md shadow-xs"
+                  style={getBadgeStyle(badge)}
                 >
                   {aqiVal}
                 </span>
                 <p className={`text-[10px] mt-0.5 ${isDark ? "text-slate-400" : "text-slate-500"}`}>
-                  PM2.5: {item.pm25 || "N/A"}
+                  PM2.5: {item.pm25 != null ? item.pm25 : "N/A"}
                 </p>
               </div>
-            </div>
+            </button>
           );
         })}
       </div>
-    </div>
+    </SectionCard>
   );
 });
 

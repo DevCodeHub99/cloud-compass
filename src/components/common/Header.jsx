@@ -1,4 +1,3 @@
-import React from "react";
 import { Sun, Moon, Compass } from "lucide-react";
 
 export function Header({ theme = "light", onToggleTheme }) {

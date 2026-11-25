@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Search, Navigation, Clock, X, Loader2, Radio, MapPin } from "lucide-react";
 import { searchAQILocations } from "../../services/aqiService";
 
@@ -27,6 +27,10 @@ export function SearchBar({
   }, [query, suggestions]);
 
   const activeItems = query.trim().length >= 2 ? suggestions : (isFocused ? searchHistory : []);
+  const hasListbox =
+    isFocused &&
+    ((query.trim().length >= 2 && suggestions.length > 0) ||
+      (query.trim().length < 2 && searchHistory.length > 0));
 
   const handleKeyDown = (e) => {
     // Block action if IME composition candidate is actively being confirmed (ime-safe-enter-submit)
@@ -54,27 +58,38 @@ export function SearchBar({
     }
   };
 
-  // Debounced live search autocomplete
+  // Debounced live search autocomplete with request cancellation
   useEffect(() => {
     const trimmed = query.trim();
     if (trimmed.length < 2) {
       setSuggestions([]);
+      setSuggestLoading(false);
       return;
     }
 
+    const controller = new AbortController();
     const timer = setTimeout(async () => {
       setSuggestLoading(true);
       try {
-        const matches = await searchAQILocations(trimmed);
-        setSuggestions(matches);
-      } catch {
-        setSuggestions([]);
+        const matches = await searchAQILocations(trimmed, controller.signal);
+        if (!controller.signal.aborted) {
+          setSuggestions(matches);
+        }
+      } catch (err) {
+        if (!controller.signal.aborted && err?.name !== "AbortError") {
+          setSuggestions([]);
+        }
       } finally {
-        setSuggestLoading(false);
+        if (!controller.signal.aborted) {
+          setSuggestLoading(false);
+        }
       }
     }, 250);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
   }, [query]);
 
   // Close dropdown on outside click
@@ -124,8 +139,8 @@ export function SearchBar({
             id="location-search-input"
             role="combobox"
             aria-autocomplete="list"
-            aria-expanded={isFocused && activeItems.length > 0}
-            aria-controls="search-suggestions-listbox"
+            aria-expanded={hasListbox}
+            aria-controls={hasListbox ? "search-suggestions-listbox" : undefined}
             aria-activedescendant={selectedIndex >= 0 ? `suggestion-option-${selectedIndex}` : undefined}
             aria-label={mode === "weather" ? "Search city for weather forecast" : "Search city or nearby sensor for air quality"}
             value={query}
@@ -139,6 +154,9 @@ export function SearchBar({
                 : "bg-white text-slate-900 border-teal-200/80 placeholder-slate-400 shadow-sm"
             }`}
             autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="none"
+            spellCheck={false}
           />
 
           <Search className={`w-5 h-5 absolute top-1/2 left-4 transform -translate-y-1/2 pointer-events-none ${
@@ -205,7 +223,8 @@ export function SearchBar({
                             id={`suggestion-option-${idx}`}
                             role="option"
                             aria-selected={isSelected}
-                            onMouseDown={() => handleSelectSuggestion(item)}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => handleSelectSuggestion(item)}
                             className={`flex items-center justify-between p-2.5 min-h-[44px] rounded-lg cursor-pointer transition-colors ${
                               isSelected
                                 ? isDark
@@ -275,7 +294,8 @@ export function SearchBar({
                           id={`suggestion-option-${idx}`}
                           role="option"
                           aria-selected={isSelected}
-                          onMouseDown={() => handleSelectHistory(item)}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => handleSelectHistory(item)}
                           className={`flex items-center space-x-2 p-2.5 min-h-[44px] rounded-lg cursor-pointer text-sm transition-colors ${
                             isSelected
                               ? isDark

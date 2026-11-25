@@ -4,36 +4,48 @@
  * daylight duration, and real-time sun elevation trajectory from geographic coordinates.
  */
 
+function deriveTimezoneOffsetMinutes(lat = 28.6139, lon = 77.2090, tzOffsetMinutes = null) {
+  if (tzOffsetMinutes !== null && tzOffsetMinutes !== undefined && Number.isFinite(Number(tzOffsetMinutes))) {
+    return Number(tzOffsetMinutes);
+  }
+  const validLat = Number.isFinite(Number(lat)) ? Number(lat) : 28.6139;
+  const validLon = Number.isFinite(Number(lon)) ? Number(lon) : 77.2090;
+
+  if (validLat >= 6 && validLat <= 38 && validLon >= 68 && validLon <= 98) {
+    // Indian Standard Time (IST) is UTC+5:30 (+330 mins)
+    return 330;
+  }
+  // Standard international timezone nearest 30-minute meridians
+  return Math.round((validLon / 15) * 2) * 30;
+}
+
 export function calculateSolarCycle(lat = 28.6139, lon = 77.2090, refDate = new Date(), tzOffsetMinutes = null) {
   const rad = Math.PI / 180;
   const deg = 180 / Math.PI;
 
-  const validLat = lat !== undefined && lat !== null && !isNaN(Number(lat)) ? Number(lat) : 28.6139;
-  const validLon = lon !== undefined && lon !== null && !isNaN(Number(lon)) ? Number(lon) : 77.2090;
-  const now = refDate instanceof Date ? refDate : new Date(refDate);
+  const parsedLat = lat !== undefined && lat !== null && lat !== "" && Number.isFinite(Number(lat)) ? Number(lat) : 28.6139;
+  const parsedLon = lon !== undefined && lon !== null && lon !== "" && Number.isFinite(Number(lon)) ? Number(lon) : 77.2090;
+  const validLat = Math.max(-89.9, Math.min(89.9, parsedLat));
+  const validLon = Math.max(-180, Math.min(180, parsedLon));
+  const rawDate = refDate instanceof Date ? refDate : new Date(refDate);
+  const now = Number.isFinite(rawDate.getTime()) ? rawDate : new Date();
 
-  // Derive local standard timezone offset in minutes:
-  // If explicitly provided, use it. Otherwise derive from geographic coordinates.
-  let effectiveOffsetMinutes;
-  if (tzOffsetMinutes !== null && !isNaN(tzOffsetMinutes)) {
-    effectiveOffsetMinutes = Number(tzOffsetMinutes);
-  } else if (validLat >= 6 && validLat <= 38 && validLon >= 68 && validLon <= 98) {
-    // Indian Standard Time (IST) is UTC+5:30 (+330 mins)
-    effectiveOffsetMinutes = 330;
-  } else {
-    // Standard international timezone nearest 30-minute meridians
-    effectiveOffsetMinutes = Math.round((validLon / 15) * 2) * 30;
-  }
+  const effectiveOffsetMinutes = deriveTimezoneOffsetMinutes(validLat, validLon, tzOffsetMinutes);
 
-  const startOfYear = new Date(now.getFullYear(), 0, 0);
-  const diff = now - startOfYear;
-  const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24));
+  // Evaluate calendar date in the target location's timezone rather than the browser's local timezone
+  const targetLocalNow = new Date(now.getTime() + effectiveOffsetMinutes * 60000);
+  const targetYear = targetLocalNow.getUTCFullYear();
+  const targetMonth = targetLocalNow.getUTCMonth();
+  const targetDay = targetLocalNow.getUTCDate();
+
+  const dayOfYear = Math.floor(
+    (Date.UTC(targetYear, targetMonth, targetDay) - Date.UTC(targetYear, 0, 0)) / 86400000
+  );
   const lngHour = validLon / 15;
 
   /**
-   * Calculates UTC hour of solar event at a given zenith
-   * Standard official zenith for sunrise/sunset is 90.833°
-   * Civil twilight zenith is 96.0° (sun 6° below horizon)
+   * Calculates UTC hour [0, 24) of solar event at a given zenith.
+   * Official sunrise/sunset zenith is 90.833°; civil twilight zenith is 96.0°.
    */
   function calcSolarEvent(isSunrise, zenith = 90.833) {
     const t = isSunrise
@@ -64,8 +76,7 @@ export function calculateSolarCycle(lat = 28.6139, lon = 77.2090, refDate = new 
     H = H / 15;
 
     const T = H + RA - 0.06571 * t - 6.622;
-    let UT = (T - lngHour + 24) % 24;
-    return UT;
+    return (((T - lngHour) % 24) + 24) % 24;
   }
 
   const sunriseUT = calcSolarEvent(true);
@@ -73,19 +84,27 @@ export function calculateSolarCycle(lat = 28.6139, lon = 77.2090, refDate = new 
   const dawnUT = calcSolarEvent(true, 96.0);
   const duskUT = calcSolarEvent(false, 96.0);
 
-  function toDate(utHours, baseDate = now) {
-    if (utHours === null || isNaN(utHours)) return null;
-    const d = new Date(
-      Date.UTC(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), 0, 0, 0)
-    );
-    d.setUTCMinutes(Math.round(utHours * 60));
-    return d;
+  /**
+   * Anchors a UTC solar hour onto the target city's local calendar day so events
+   * crossing UTC midnight (e.g. Americas sunset or East Asia sunrise) stay properly ordered.
+   */
+  function toDate(utHours) {
+    if (utHours === null || !Number.isFinite(utHours)) return null;
+    const localHours = (((utHours + effectiveOffsetMinutes / 60) % 24) + 24) % 24;
+    const localMidnightUtcMs = Date.UTC(targetYear, targetMonth, targetDay, 0, 0, 0) - effectiveOffsetMinutes * 60000;
+    return new Date(localMidnightUtcMs + Math.round(localHours * 60) * 60000);
   }
 
   const sunrise = toDate(sunriseUT);
-  const sunset = toDate(sunsetUT);
+  let sunset = toDate(sunsetUT);
+  if (sunrise && sunset && sunset.getTime() <= sunrise.getTime()) {
+    sunset = new Date(sunset.getTime() + 24 * 3600000);
+  }
   const dawn = toDate(dawnUT);
-  const dusk = toDate(duskUT);
+  let dusk = toDate(duskUT);
+  if (dawn && dusk && dusk.getTime() <= dawn.getTime()) {
+    dusk = new Date(dusk.getTime() + 24 * 3600000);
+  }
 
   if (!sunrise || !sunset) {
     return {
@@ -94,11 +113,14 @@ export function calculateSolarCycle(lat = 28.6139, lon = 77.2090, refDate = new 
       solarNoon: "12:00 PM",
       dawn: "05:30 AM",
       dusk: "06:30 PM",
+      rawSunrise: null,
+      rawSunset: null,
+      effectiveOffsetMinutes,
       daylightStr: "12h 00m",
       nightStr: "12h 00m",
       isDay: true,
       dayProgress: 0.5,
-      nextEvent: { type: "sunset", countdown: "6h 00m" }
+      nextEvent: { type: "sunset", countdown: "6h 00m", label: "Polar solar cycle" }
     };
   }
 
@@ -109,16 +131,15 @@ export function calculateSolarCycle(lat = 28.6139, lon = 77.2090, refDate = new 
   const daylightHours = Math.floor(daylightMs / (1000 * 60 * 60));
   const daylightMinutes = Math.floor((daylightMs % (1000 * 60 * 60)) / (1000 * 60));
 
-  const nightMs = 24 * 3600000 - daylightMs;
+  const nightMs = Math.max(0, 24 * 3600000 - daylightMs);
   const nightHours = Math.floor(nightMs / (1000 * 60 * 60));
   const nightMinutes = Math.floor((nightMs % (1000 * 60 * 60)) / (1000 * 60));
 
   const nowMs = now.getTime();
   const isDay = nowMs >= sunrise.getTime() && nowMs <= sunset.getTime();
 
-  // Progress from 0.0 (sunrise) to 1.0 (sunset) during the day
   let dayProgress = 0;
-  if (isDay) {
+  if (isDay && daylightMs > 0) {
     dayProgress = Math.max(0, Math.min(1, (nowMs - sunrise.getTime()) / daylightMs));
   } else if (nowMs < sunrise.getTime()) {
     dayProgress = 0;
@@ -126,40 +147,27 @@ export function calculateSolarCycle(lat = 28.6139, lon = 77.2090, refDate = new 
     dayProgress = 1;
   }
 
-  // Next upcoming solar event
-  let nextEvent = {};
+  function buildNextEvent(type, eventDate) {
+    const diffMs = Math.max(0, eventDate.getTime() - nowMs);
+    const hrs = Math.floor(diffMs / 3600000);
+    const mins = Math.floor((diffMs % 3600000) / 60000);
+    const countdown = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
+    const prefix = type === "sunrise" ? "Sunrise" : "Sunset";
+    return {
+      type,
+      time: eventDate,
+      countdown,
+      label: `${prefix} in ${countdown}`
+    };
+  }
+
+  let nextEvent;
   if (nowMs < sunrise.getTime()) {
-    const diff = sunrise.getTime() - nowMs;
-    const hrs = Math.floor(diff / 3600000);
-    const mins = Math.floor((diff % 3600000) / 60000);
-    nextEvent = {
-      type: "sunrise",
-      time: sunrise,
-      countdown: hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`,
-      label: `Sunrise in ${hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`}`
-    };
+    nextEvent = buildNextEvent("sunrise", sunrise);
   } else if (nowMs < sunset.getTime()) {
-    const diff = sunset.getTime() - nowMs;
-    const hrs = Math.floor(diff / 3600000);
-    const mins = Math.floor((diff % 3600000) / 60000);
-    nextEvent = {
-      type: "sunset",
-      time: sunset,
-      countdown: hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`,
-      label: `Sunset in ${hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`}`
-    };
+    nextEvent = buildNextEvent("sunset", sunset);
   } else {
-    // Next day sunrise
-    const tomorrowSunrise = new Date(sunrise.getTime() + 24 * 3600000);
-    const diff = tomorrowSunrise.getTime() - nowMs;
-    const hrs = Math.floor(diff / 3600000);
-    const mins = Math.floor((diff % 3600000) / 60000);
-    nextEvent = {
-      type: "sunrise",
-      time: tomorrowSunrise,
-      countdown: hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`,
-      label: `Sunrise in ${hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`}`
-    };
+    nextEvent = buildNextEvent("sunrise", new Date(sunrise.getTime() + 24 * 3600000));
   }
 
   function formatTime(d) {
@@ -183,6 +191,7 @@ export function calculateSolarCycle(lat = 28.6139, lon = 77.2090, refDate = new 
     dusk: formatTime(dusk),
     rawSunrise: sunrise,
     rawSunset: sunset,
+    effectiveOffsetMinutes,
     daylightStr: `${daylightHours}h ${String(daylightMinutes).padStart(2, "0")}m`,
     nightStr: `${nightHours}h ${String(nightMinutes).padStart(2, "0")}m`,
     isDay,

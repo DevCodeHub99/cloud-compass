@@ -13,19 +13,16 @@ import {
 describe("Meteorological Calculation & Formatting Utilities", () => {
   describe("calculateDewPoint (Magnus-Tetens Formula)", () => {
     it("accurately calculates dew point for typical conditions", () => {
-      // 25°C at 50% relative humidity -> Dew point is approx 13.9°C
       const dp = calculateDewPoint(25, 50);
       assert.equal(typeof dp, "number");
       assert.ok(Math.abs(dp - 13.9) <= 0.2, `Expected ~13.9°C, got ${dp}`);
     });
 
     it("returns ambient temperature at 100% relative humidity", () => {
-      // At 100% RH, dew point equals the ambient temperature
-      const dp = calculateDewPoint(20, 100);
-      assert.equal(dp, 20);
+      assert.equal(calculateDewPoint(20, 100), 20);
     });
 
-    it("handles boundary, zero, and subzero temperatures", () => {
+    it("handles boundary, subzero, and invalid inputs safely", () => {
       const subzeroDp = calculateDewPoint(-5, 60);
       assert.equal(typeof subzeroDp, "number");
       assert.ok(subzeroDp < -5);
@@ -33,6 +30,9 @@ describe("Meteorological Calculation & Formatting Utilities", () => {
       assert.equal(calculateDewPoint(null, 50), null);
       assert.equal(calculateDewPoint(25, null), null);
       assert.equal(calculateDewPoint(undefined, undefined), null);
+      assert.equal(calculateDewPoint("", 50), null);
+      assert.equal(calculateDewPoint("abc", 50), null);
+      assert.equal(calculateDewPoint(-237.7, 50), null);
     });
   });
 
@@ -44,6 +44,7 @@ describe("Meteorological Calculation & Formatting Utilities", () => {
       assert.equal(getDewPointComfort(21), "Muggy & sticky");
       assert.equal(getDewPointComfort(26), "Oppressive & stifling");
       assert.equal(getDewPointComfort(null), "Normal");
+      assert.equal(getDewPointComfort("invalid"), "Normal");
     });
   });
 
@@ -60,7 +61,7 @@ describe("Meteorological Calculation & Formatting Utilities", () => {
   });
 
   describe("getWindDirection", () => {
-    it("converts angular compass degrees into 16-point cardinal strings", () => {
+    it("converts angular compass degrees including negative angles cleanly", () => {
       assert.equal(getWindDirection(0), "N");
       assert.equal(getWindDirection(360), "N");
       assert.equal(getWindDirection(90), "E");
@@ -68,6 +69,9 @@ describe("Meteorological Calculation & Formatting Utilities", () => {
       assert.equal(getWindDirection(270), "W");
       assert.equal(getWindDirection(45), "NE");
       assert.equal(getWindDirection(225), "SW");
+      assert.equal(getWindDirection(-45), "NW");
+      assert.equal(getWindDirection(-90), "W");
+      assert.equal(getWindDirection("invalid"), "N");
       assert.equal(getWindDirection(null), "N");
     });
   });
@@ -87,18 +91,19 @@ describe("Meteorological Calculation & Formatting Utilities", () => {
   });
 
   describe("getVisibilityDescription & getPressureStatus", () => {
-    it("categorizes atmospheric visibility accurately", () => {
+    it("categorizes atmospheric visibility and pressure accurately", () => {
       assert.equal(getVisibilityDescription(0.5), "Dense fog / low");
       assert.equal(getVisibilityDescription(3), "Hazy / moderate");
       assert.equal(getVisibilityDescription(7), "Fair clarity");
       assert.equal(getVisibilityDescription(15), "Clear & optimal");
       assert.equal(getVisibilityDescription(null), "Fair");
-    });
+      assert.equal(getVisibilityDescription("invalid"), "Fair");
 
-    it("evaluates barometric pressure trends", () => {
       assert.equal(getPressureStatus(1000), "Low (Unsettled)");
       assert.equal(getPressureStatus(1013), "Normal (Stable)");
       assert.equal(getPressureStatus(1025), "High (Settled)");
+      assert.equal(getPressureStatus(0), "Normal");
+      assert.equal(getPressureStatus("invalid"), "Normal");
       assert.equal(getPressureStatus(null), "Normal");
     });
   });

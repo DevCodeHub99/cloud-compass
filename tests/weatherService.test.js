@@ -64,8 +64,7 @@ describe("Weather Normalization & Forecast Generation Service", () => {
     assert.equal(normalized.hourly[0].timeStr, "Now");
     assert.equal(normalized.hourly[0].temp, 28);
 
-    // Verify all 24 hours have numerical temperatures and humidity
-    normalized.hourly.forEach((h, idx) => {
+    normalized.hourly.forEach((h) => {
       assert.equal(typeof h.temp, "number");
       assert.equal(typeof h.humidity, "number");
       assert.equal(typeof h.pop, "number");
@@ -103,18 +102,28 @@ describe("Weather Normalization & Forecast Generation Service", () => {
     }, /No telemetry provided/);
   });
 
-  it("handles missing nested weather fields with safe defaults", () => {
-    const emptyWeatherPayload = {
-      city: "Kolkata",
-      latitude: 22.5726,
-      longitude: 88.3639
+  it("handles missing or null weather fields and zero coordinates safely", () => {
+    const nullFieldsPayload = {
+      city: "Null Island",
+      latitude: 0,
+      longitude: 0,
+      weather: {
+        temp_c: null,
+        humidity: null,
+        pressure_mb: null,
+        wind_kph: null,
+        uv: null
+      }
     };
 
-    const normalized = normalizeAQIWeatherData(emptyWeatherPayload);
+    const normalized = normalizeAQIWeatherData(nullFieldsPayload);
 
-    assert.equal(normalized.current.temp, 25); // default fallback
-    assert.equal(normalized.current.humidity, 45); // default fallback
-    assert.equal(normalized.current.condition, "Clear"); // default fallback
+    assert.equal(normalized.city.coord.lat, 0);
+    assert.equal(normalized.city.coord.lon, 0);
+    assert.equal(normalized.current.temp, 25);
+    assert.equal(normalized.current.humidity, 45);
+    assert.equal(normalized.current.pressure, 1013);
+    assert.equal(normalized.current.condition, "Clear");
     assert.equal(normalized.hourly.length, 24);
     assert.equal(normalized.daily.length, 5);
   });

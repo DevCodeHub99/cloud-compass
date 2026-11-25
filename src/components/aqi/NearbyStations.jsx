@@ -1,7 +1,8 @@
 import React from "react";
 import { Radio, CheckCircle, Navigation2 } from "lucide-react";
-import { getCPCBBadge, formatLocationInfo } from "../../constants/aqiStandards";
+import { getCPCBBadge, getBadgeStyle, formatLocationInfo } from "../../constants/aqiStandards";
 import { calculateDistance } from "../../services/aqiService";
+import { SectionCard } from "../common/SectionCard";
 
 export const NearbyStations = React.memo(function NearbyStations({
   stations = [],
@@ -17,23 +18,21 @@ export const NearbyStations = React.memo(function NearbyStations({
   // Compute and format distance for each station
   const enrichedStations = stations.map((st) => {
     let distStr = "";
-    if (typeof st.distance === "number") {
+    if (typeof st.distance === "number" && Number.isFinite(st.distance)) {
       distStr = st.distance < 1 ? `${Math.round(st.distance * 1000)} m` : `${st.distance.toFixed(1)} km`;
-    } else if (userCoords?.lat && userCoords?.lon && st.latitude && st.longitude) {
+    } else if (
+      userCoords?.lat != null &&
+      userCoords?.lon != null &&
+      st.latitude != null &&
+      st.longitude != null
+    ) {
       distStr = calculateDistance(userCoords.lat, userCoords.lon, st.latitude, st.longitude) || "";
     }
     return { ...st, formattedDistance: distStr };
   });
 
   return (
-    <div
-      id="nearby-sensors-section"
-      className={`content-visibility-auto backdrop-blur-xl p-3.5 sm:p-6 lg:p-7 rounded-3xl max-w-4xl mx-auto mt-4 transition-all duration-300 border ${
-        isDark
-          ? "bg-slate-900/95 text-white border-slate-800 shadow-2xl"
-          : "bg-white text-slate-800 border-slate-200/90 shadow-xl shadow-slate-200/50"
-      }`}
-    >
+    <SectionCard id="nearby-sensors-section" theme={theme} className="content-visibility-auto mt-4">
       {/* Header: Title & Sensor Count (No Search Bar) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
         <div>
@@ -82,10 +81,12 @@ export const NearbyStations = React.memo(function NearbyStations({
           const locInfo = formatLocationInfo(st);
 
           return (
-            <div
+            <button
               key={idx}
+              type="button"
               onClick={() => onSelectStation && onSelectStation(st)}
-              className={`p-3.5 rounded-2xl border transition-all duration-300 cursor-pointer flex flex-col justify-between group hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98] ${
+              aria-pressed={Boolean(isSelected)}
+              className={`w-full text-left p-3.5 rounded-2xl border transition-all duration-300 cursor-pointer flex flex-col justify-between group hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98] ${
                 isSelected
                   ? isDark
                     ? "bg-teal-950/60 border-teal-500 ring-2 ring-teal-500/30 text-white"
@@ -95,7 +96,7 @@ export const NearbyStations = React.memo(function NearbyStations({
                   : "bg-slate-50/80 hover:bg-white border-slate-200 hover:border-teal-300 text-slate-900 shadow-xs"
               }`}
             >
-              <div className="flex items-start justify-between gap-2">
+              <div className="flex items-start justify-between gap-2 w-full">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center space-x-1.5">
                     <p
@@ -121,15 +122,15 @@ export const NearbyStations = React.memo(function NearbyStations({
                 </div>
 
                 <span
-                  className="px-2.5 py-1 rounded-lg text-xs font-black text-white flex-shrink-0 shadow-xs"
-                  style={{ backgroundColor: badge.color }}
+                  className="px-2.5 py-1 rounded-lg text-xs font-black flex-shrink-0 shadow-xs"
+                  style={getBadgeStyle(badge)}
                 >
                   {aqiVal}
                 </span>
               </div>
 
               <div
-                className={`flex items-center justify-between text-[11px] pt-2 mt-2 border-t ${
+                className={`flex items-center justify-between text-[11px] pt-2 mt-2 border-t w-full ${
                   isDark ? "border-slate-700/60" : "border-slate-200/80"
                 }`}
               >
@@ -143,11 +144,11 @@ export const NearbyStations = React.memo(function NearbyStations({
                     : badge.category}
                 </span>
               </div>
-            </div>
+            </button>
           );
         })}
       </div>
-    </div>
+    </SectionCard>
   );
 });
 

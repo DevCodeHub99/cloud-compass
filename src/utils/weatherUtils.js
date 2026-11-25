@@ -2,6 +2,14 @@
  * Meteorological calculation and formatting utilities
  */
 
+function toFiniteNumber(val) {
+  if (val === undefined || val === null || val === "" || typeof val === "boolean") {
+    return null;
+  }
+  const num = Number(val);
+  return Number.isFinite(num) ? num : null;
+}
+
 /**
  * Calculates Dew Point in Celsius using the Magnus-Tetens approximation
  * @param {number} tempC - Temperature in Celsius
@@ -9,28 +17,34 @@
  * @returns {number|null} - Dew point in Celsius, rounded to 1 decimal place
  */
 export function calculateDewPoint(tempC, humidity) {
-  if (tempC === undefined || tempC === null || humidity === undefined || humidity === null) {
+  const t = toFiniteNumber(tempC);
+  const rawH = toFiniteNumber(humidity);
+  if (t === null || rawH === null) {
     return null;
   }
+
   const a = 17.27;
   const b = 237.7;
-  const h = Math.max(1, Math.min(100, Number(humidity)));
-  const t = Number(tempC);
+  if (b + t === 0) return null;
 
+  const h = Math.max(1, Math.min(100, rawH));
   const alpha = (a * t) / (b + t) + Math.log(h / 100);
+  if (a - alpha === 0) return null;
+
   const dewPoint = (b * alpha) / (a - alpha);
-  return Math.round(dewPoint * 10) / 10;
+  return Number.isFinite(dewPoint) ? Math.round(dewPoint * 10) / 10 : null;
 }
 
 /**
  * Categorizes dew point into human-perceived comfort levels
  */
 export function getDewPointComfort(dewPointC) {
-  if (dewPointC === null || dewPointC === undefined) return "Normal";
-  if (dewPointC < 10) return "Dry & crisp";
-  if (dewPointC <= 15) return "Very comfortable";
-  if (dewPointC <= 19) return "Noticeably humid";
-  if (dewPointC <= 23) return "Muggy & sticky";
+  const val = toFiniteNumber(dewPointC);
+  if (val === null) return "Normal";
+  if (val < 10) return "Dry & crisp";
+  if (val <= 15) return "Very comfortable";
+  if (val <= 19) return "Noticeably humid";
+  if (val <= 23) return "Muggy & sticky";
   return "Oppressive & stifling";
 }
 
@@ -38,7 +52,8 @@ export function getDewPointComfort(dewPointC) {
  * Categorizes UV index with standard WHO scale
  */
 export function getUVCategory(uv) {
-  const val = Number(uv) || 0;
+  const parsed = toFiniteNumber(uv);
+  const val = parsed === null ? 0 : Math.max(0, parsed);
   if (val <= 2) {
     return {
       level: "Low",
@@ -80,15 +95,17 @@ export function getUVCategory(uv) {
 }
 
 /**
- * Converts compass degrees (0-360) to 16-point cardinal compass direction
+ * Converts compass degrees (0-360, or negative) to 16-point cardinal compass direction
  */
 export function getWindDirection(deg) {
-  if (deg === undefined || deg === null) return "N";
+  const numDeg = toFiniteNumber(deg);
+  if (numDeg === null) return "N";
   const cardinals = [
     "N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
     "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"
   ];
-  const index = Math.round((Number(deg) % 360) / 22.5) % 16;
+  const normalizedDeg = ((numDeg % 360) + 360) % 360;
+  const index = Math.round(normalizedDeg / 22.5) % 16;
   return cardinals[index];
 }
 
@@ -96,7 +113,8 @@ export function getWindDirection(deg) {
  * Beaufort scale summary based on wind speed in km/h
  */
 export function getBeaufortDescription(kph) {
-  const val = Number(kph) || 0;
+  const parsed = toFiniteNumber(kph);
+  const val = parsed === null ? 0 : Math.max(0, parsed);
   if (val < 2) return "Calm";
   if (val <= 5) return "Light air";
   if (val <= 11) return "Light breeze";
@@ -112,8 +130,8 @@ export function getBeaufortDescription(kph) {
  * Visibility description based on distance in km
  */
 export function getVisibilityDescription(km) {
-  if (km === null || km === undefined) return "Fair";
-  const val = Number(km);
+  const val = toFiniteNumber(km);
+  if (val === null) return "Fair";
   if (val < 1) return "Dense fog / low";
   if (val < 4) return "Hazy / moderate";
   if (val < 9) return "Fair clarity";
@@ -124,8 +142,8 @@ export function getVisibilityDescription(km) {
  * Atmospheric pressure assessment
  */
 export function getPressureStatus(pressureHpa) {
-  if (!pressureHpa) return "Normal";
-  const val = Number(pressureHpa);
+  const val = toFiniteNumber(pressureHpa);
+  if (val === null || val <= 0) return "Normal";
   if (val < 1005) return "Low (Unsettled)";
   if (val <= 1018) return "Normal (Stable)";
   return "High (Settled)";

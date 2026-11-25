@@ -1,20 +1,24 @@
 import { STORAGE_KEYS, DEFAULT_LOCATION } from "../constants/api.js";
 import { logger } from "../utils/logger.js";
 
+function isFiniteCoord(val) {
+  return val !== undefined && val !== null && val !== "" && Number.isFinite(Number(val));
+}
+
 /**
  * Universal fetch with declarative timeout cancellation (AbortSignal.timeout)
  */
 async function fetchWithTimeout(url, timeoutMs = 2500) {
-  const signal = typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function"
-    ? AbortSignal.timeout(timeoutMs)
-    : undefined;
+  const signal =
+    typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function"
+      ? AbortSignal.timeout(timeoutMs)
+      : undefined;
   return fetch(url, { signal });
 }
 
 /**
  * Derives a human-readable city from browser IANA timezone
  * e.g., "America/New_York" -> "New York", "Europe/London" -> "London", "Asia/Kolkata" -> "Kolkata"
- * 100% offline, zero network requests, zero latency.
  */
 export function getCityFromTimezone() {
   try {
@@ -38,7 +42,7 @@ export function getSavedLocation() {
       const raw = window.localStorage.getItem(STORAGE_KEYS.LAST_LOCATION);
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (parsed && (parsed.city || (parsed.lat && parsed.lon))) {
+        if (parsed && (parsed.city || (isFiniteCoord(parsed.lat) && isFiniteCoord(parsed.lon)))) {
           return parsed;
         }
       }
@@ -75,13 +79,13 @@ export async function detectApproximateLocation() {
     const edgeRes = await fetchWithTimeout("/api/geo", 1500);
     if (edgeRes.ok) {
       const data = await edgeRes.json();
-      if (data && (data.city || (data.lat && data.lon))) {
+      if (data && (data.city || (isFiniteCoord(data.lat) && isFiniteCoord(data.lon)))) {
         logger.info("Approximate location resolved via Vercel Edge:", data.city || `${data.lat}, ${data.lon}`);
         return {
           city: data.city || null,
           country: data.country || null,
-          lat: data.lat ? Number(data.lat) : null,
-          lon: data.lon ? Number(data.lon) : null,
+          lat: isFiniteCoord(data.lat) ? Number(data.lat) : null,
+          lon: isFiniteCoord(data.lon) ? Number(data.lon) : null,
           source: "edge-ip"
         };
       }
@@ -95,13 +99,13 @@ export async function detectApproximateLocation() {
     const ipRes = await fetchWithTimeout("https://freeipapi.com/api/json", 2500);
     if (ipRes.ok) {
       const data = await ipRes.json();
-      if (data && (data.cityName || data.latitude)) {
+      if (data && (data.cityName || isFiniteCoord(data.latitude))) {
         logger.info("Approximate location resolved via freeipapi:", data.cityName);
         return {
           city: data.cityName || null,
           country: data.countryCode || null,
-          lat: data.latitude ? Number(data.latitude) : null,
-          lon: data.longitude ? Number(data.longitude) : null,
+          lat: isFiniteCoord(data.latitude) ? Number(data.latitude) : null,
+          lon: isFiniteCoord(data.longitude) ? Number(data.longitude) : null,
           source: "client-ip"
         };
       }
@@ -115,13 +119,13 @@ export async function detectApproximateLocation() {
     const whoRes = await fetchWithTimeout("https://ipwho.is/", 2500);
     if (whoRes.ok) {
       const data = await whoRes.json();
-      if (data && data.success && (data.city || data.latitude)) {
+      if (data && data.success && (data.city || isFiniteCoord(data.latitude))) {
         logger.info("Approximate location resolved via ipwho.is:", data.city);
         return {
           city: data.city || null,
           country: data.country_code || null,
-          lat: data.latitude ? Number(data.latitude) : null,
-          lon: data.longitude ? Number(data.longitude) : null,
+          lat: isFiniteCoord(data.latitude) ? Number(data.latitude) : null,
+          lon: isFiniteCoord(data.longitude) ? Number(data.longitude) : null,
           source: "client-ip"
         };
       }

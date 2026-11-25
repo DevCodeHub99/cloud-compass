@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useId } from "react";
 import {
   Sun,
   Sunrise,
@@ -9,9 +9,24 @@ import {
   ArrowRight
 } from "lucide-react";
 import { calculateSolarCycle } from "../../utils/solarCalculator";
+import { SectionCard } from "../common/SectionCard";
+
+function formatLocalWallClock(date, offsetMinutes) {
+  const shifted = new Date(date.getTime() + (offsetMinutes ?? 0) * 60000);
+  let hours = shifted.getUTCHours();
+  const minutes = shifted.getUTCMinutes();
+  const ampm = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12 || 12;
+  return `${hours}:${String(minutes).padStart(2, "0")} ${ampm}`;
+}
 
 export const SunTimeline = React.memo(function SunTimeline({ astronomy, coord, theme = "light" }) {
   const isDark = theme === "dark";
+  const uid = useId();
+  const skyGradId = `sunSkySoftGrad-${uid}`;
+  const traversedGradId = `sunTraversedGrad-${uid}`;
+  const coreRadialId = `sunCoreRadial-${uid}`;
+  const coronaGlowId = `solarCoronaGlow-${uid}`;
   const [now, setNow] = useState(() => new Date());
   const [isHovered, setIsHovered] = useState(false);
 
@@ -26,8 +41,8 @@ export const SunTimeline = React.memo(function SunTimeline({ astronomy, coord, t
   const lat = coord?.lat ?? 28.6139;
   const lon = coord?.lon ?? 77.2090;
 
-  // Real-time solar cycle derived from geographic coordinates & current wall clock time
-  const astro = calculateSolarCycle(lat, lon, now);
+  // Real-time solar cycle anchored to target coordinates & offset
+  const astro = calculateSolarCycle(lat, lon, now, astronomy?.effectiveOffsetMinutes ?? null);
 
   // SVG Geometry Constants
   const svgWidth = 600;
@@ -67,25 +82,15 @@ export const SunTimeline = React.memo(function SunTimeline({ astronomy, coord, t
   // Solar elevation approximation (0° at horizon up to ~65° at solar noon)
   const sunElevation = Math.max(0, Math.round(Math.sin(t * Math.PI) * 65));
 
-  // Real-time formatted local clock time
-  const timeFormatted = now.toLocaleTimeString([], {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true
-  });
+  // Target location formatted wall clock time
+  const timeFormatted = formatLocalWallClock(now, astro.effectiveOffsetMinutes);
 
   // Safe clamping for the floating hover tooltip
   const tooltipX = Math.max(70, Math.min(svgWidth - 70, sunPos.x));
   const tooltipY = Math.max(16, sunPos.y - 32);
 
   return (
-    <section
-      className={`content-visibility-auto backdrop-blur-xl p-3.5 sm:p-6 lg:p-7 rounded-3xl max-w-4xl mx-auto border transition-all duration-300 ${
-        isDark
-          ? "bg-slate-900/95 text-white border-slate-800 shadow-2xl"
-          : "bg-white text-slate-800 border-slate-200/90 shadow-xl shadow-slate-200/50"
-      }`}
-    >
+    <SectionCard as="section" theme={theme} className="content-visibility-auto">
       {/* 1. Header Bar: Title and Contextual Status Badge */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
         <div>
@@ -191,7 +196,7 @@ export const SunTimeline = React.memo(function SunTimeline({ astronomy, coord, t
         >
           <defs>
             {/* Daytime Sky Soft Golden Radial Gradient */}
-            <radialGradient id="sunSkySoftGrad" cx="50%" cy="50%" r="60%">
+            <radialGradient id={skyGradId} cx="50%" cy="50%" r="60%">
               <stop
                 offset="0%"
                 stopColor="#f59e0b"
@@ -206,14 +211,14 @@ export const SunTimeline = React.memo(function SunTimeline({ astronomy, coord, t
             </radialGradient>
 
             {/* Glowing Traversed Path Gradient */}
-            <linearGradient id="sunTraversedGrad" x1="0" y1="0" x2="1" y2="0">
+            <linearGradient id={traversedGradId} x1="0" y1="0" x2="1" y2="0">
               <stop offset="0%" stopColor="#f97316" />
               <stop offset="50%" stopColor="#fbbf24" />
               <stop offset="100%" stopColor="#f59e0b" />
             </linearGradient>
 
             {/* Radiant Multi-Stop Core Sun Fill */}
-            <radialGradient id="sunCoreRadial" cx="50%" cy="50%" r="50%">
+            <radialGradient id={coreRadialId} cx="50%" cy="50%" r="50%">
               <stop offset="0%" stopColor="#ffffff" />
               <stop offset="40%" stopColor="#fef08a" />
               <stop offset="75%" stopColor="#f59e0b" />
@@ -221,13 +226,13 @@ export const SunTimeline = React.memo(function SunTimeline({ astronomy, coord, t
             </radialGradient>
 
             {/* Ambient Solar Corona Blur Filter */}
-            <filter id="solarCoronaGlow" x="-60%" y="-60%" width="220%" height="220%">
+            <filter id={coronaGlowId} x="-60%" y="-60%" width="220%" height="220%">
               <feGaussianBlur in="SourceGraphic" stdDeviation="4.5" />
             </filter>
           </defs>
 
           {/* Ambient Daytime Sky Fill */}
-          <path d={daySkyFill} fill="url(#sunSkySoftGrad)" />
+          <path d={daySkyFill} fill={`url(#${skyGradId})`} />
 
           {/* Sub-Horizon Night Arch (Dashed curve below horizon) */}
           <path
@@ -322,7 +327,7 @@ export const SunTimeline = React.memo(function SunTimeline({ astronomy, coord, t
               <path
                 d={elapsedArcPath}
                 fill="none"
-                stroke="url(#sunTraversedGrad)"
+                stroke={`url(#${traversedGradId})`}
                 strokeWidth="3.5"
                 strokeLinecap="round"
                 className="filter drop-shadow-sm"
@@ -360,7 +365,7 @@ export const SunTimeline = React.memo(function SunTimeline({ astronomy, coord, t
                   r="18"
                   fill="#fbbf24"
                   opacity="0.32"
-                  filter="url(#solarCoronaGlow)"
+                  filter={`url(#${coronaGlowId})`}
                 />
 
                 {/* 8 Geometric Solar Rays Radiating Outward */}
@@ -388,7 +393,7 @@ export const SunTimeline = React.memo(function SunTimeline({ astronomy, coord, t
                   cx={sunPos.x}
                   cy={sunPos.y}
                   r="8.5"
-                  fill="url(#sunCoreRadial)"
+                  fill={`url(#${coreRadialId})`}
                   stroke="#ffffff"
                   strokeWidth="1.8"
                   className="shadow-lg cursor-pointer"
@@ -577,7 +582,7 @@ export const SunTimeline = React.memo(function SunTimeline({ astronomy, coord, t
           </div>
         </div>
       </div>
-    </section>
+    </SectionCard>
   );
 });
 

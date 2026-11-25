@@ -4,9 +4,8 @@ import {
   getCPCBBadge,
   getUSEPABadge,
   formatAQITimestamp,
-  formatLocationInfo,
-  CPCB_BANDS,
-  US_EPA_BANDS
+  parseServerTimestamp,
+  formatLocationInfo
 } from "../src/constants/aqiStandards.js";
 
 describe("Air Quality Standards & Formatting Specifications", () => {
@@ -26,9 +25,11 @@ describe("Air Quality Standards & Formatting Specifications", () => {
       assert.equal(getCPCBBadge(850).category, "Severe");
     });
 
-    it("handles zero, negative, and non-numeric inputs safely", () => {
+    it("clamps zero, negative, and non-numeric inputs safely", () => {
       assert.equal(getCPCBBadge(0).category, "Good");
       assert.equal(getCPCBBadge(-10).category, "Good");
+      assert.equal(getCPCBBadge(-10).value, 0);
+      assert.equal(getCPCBBadge("invalid").value, 0);
       assert.equal(getCPCBBadge(null).category, "Good");
       assert.equal(getCPCBBadge(undefined).category, "Good");
     });
@@ -80,7 +81,18 @@ describe("Air Quality Standards & Formatting Specifications", () => {
     });
   });
 
-  describe("formatAQITimestamp", () => {
+  describe("formatAQITimestamp & parseServerTimestamp", () => {
+    it("parses ISO and space-separated timestamps cleanly", () => {
+      const isoParsed = parseServerTimestamp("2026-11-25T10:30:00.000Z");
+      assert.ok(isoParsed instanceof Date);
+      assert.equal(isoParsed.getHours(), 10);
+      assert.equal(isoParsed.getMinutes(), 30);
+
+      const spaceParsed = parseServerTimestamp("2026-11-25 10:30:00");
+      assert.ok(spaceParsed instanceof Date);
+      assert.equal(spaceParsed.getHours(), 10);
+    });
+
     it("formats server timestamps cleanly and computes relative times", () => {
       const now = new Date();
       const fiveMinsAgo = new Date(now.getTime() - 5 * 60 * 1000);

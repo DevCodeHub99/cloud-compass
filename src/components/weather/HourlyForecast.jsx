@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from "react";
+import React, { useRef, useState, useEffect, useCallback, useId } from "react";
 import {
   Clock,
   ChevronLeft,
@@ -10,9 +10,24 @@ import {
   Sunrise,
   Sunset
 } from "lucide-react";
+import { DEFAULT_WEATHER_ICON } from "../../constants/api";
+import { SectionCard } from "../common/SectionCard";
+
+function getTargetHour(rawDate, offsetMinutes) {
+  if (!rawDate) return null;
+  const d = rawDate instanceof Date ? rawDate : new Date(rawDate);
+  if (Number.isNaN(d.getTime())) return null;
+  if (typeof offsetMinutes === "number" && Number.isFinite(offsetMinutes)) {
+    return new Date(d.getTime() + offsetMinutes * 60000).getUTCHours();
+  }
+  return d.getHours();
+}
 
 export const HourlyForecast = React.memo(function HourlyForecast({ hourly, advisory, astronomy, theme = "light" }) {
   const isDark = theme === "dark";
+  const uid = useId();
+  const tempGradId = `hourlyTempGrad-${uid}`;
+  const strokeGradId = `hourlyStrokeGrad-${uid}`;
   const scrollRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -41,8 +56,8 @@ export const HourlyForecast = React.memo(function HourlyForecast({ hourly, advis
 
   if (!hourly || hourly.length === 0) return null;
 
-  const sunriseHour = astronomy?.rawSunrise ? astronomy.rawSunrise.getHours() : null;
-  const sunsetHour = astronomy?.rawSunset ? astronomy.rawSunset.getHours() : null;
+  const sunriseHour = getTargetHour(astronomy?.rawSunrise, astronomy?.effectiveOffsetMinutes);
+  const sunsetHour = getTargetHour(astronomy?.rawSunset, astronomy?.effectiveOffsetMinutes);
 
   // Geometry constants for the continuous SVG temperature curve
   const colWidth = 74; // Width per hourly column in pixels
@@ -107,13 +122,7 @@ export const HourlyForecast = React.memo(function HourlyForecast({ hourly, advis
   const activeItem = hourly[selectedIndex] || hourly[0];
 
   return (
-    <section
-      className={`content-visibility-auto backdrop-blur-xl p-3.5 sm:p-6 lg:p-7 rounded-3xl max-w-4xl mx-auto border transition-all duration-300 relative ${
-        isDark
-          ? "bg-slate-900/95 text-white border-slate-800 shadow-2xl"
-          : "bg-white text-slate-800 border-slate-200/90 shadow-xl shadow-slate-200/50"
-      }`}
-    >
+    <SectionCard as="section" theme={theme} className="content-visibility-auto relative">
       {/* Header bar with interactive telemetry readout */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3 pb-3 border-b border-slate-100 dark:border-slate-800">
         <div className="flex items-center space-x-2">
@@ -236,16 +245,18 @@ export const HourlyForecast = React.memo(function HourlyForecast({ hourly, advis
                 const isSunset = sunsetHour !== null && item.hour === sunsetHour;
 
                 return (
-                  <div
+                  <button
                     key={idx}
+                    type="button"
                     style={{ width: `${colWidth}px` }}
                     onClick={() => setSelectedIndex(idx)}
                     onMouseEnter={() => setSelectedIndex(idx)}
-                    className="text-center cursor-pointer relative"
+                    aria-pressed={isSelected}
+                    className="text-center cursor-pointer relative bg-transparent border-0 p-0 focus-visible:outline-teal-500"
                   >
                     {(isSunrise || isSunset) && (
                       <span
-                        className={`absolute -top-3.5 left-1/2 -translate-x-1/2 text-[9px] font-black px-1.5 py-0.2 rounded-full whitespace-nowrap shadow-xs ${
+                        className={`absolute -top-3.5 left-1/2 -translate-x-1/2 text-[9px] font-black px-1.5 py-0.5 rounded-full whitespace-nowrap shadow-xs ${
                           isSunrise
                             ? "bg-amber-500 text-white"
                             : "bg-orange-600 text-white"
@@ -271,7 +282,7 @@ export const HourlyForecast = React.memo(function HourlyForecast({ hourly, advis
                     >
                       {item.timeStr}
                     </span>
-                  </div>
+                  </button>
                 );
               })}
             </div>
@@ -289,11 +300,12 @@ export const HourlyForecast = React.memo(function HourlyForecast({ hourly, advis
                     className="flex items-center justify-center space-x-1 cursor-pointer transition-transform hover:scale-105"
                   >
                     <img
-                      src={item.icon || "https://apiserver.aqi.in/uploads/weather-icons/1.svg"}
+                      src={item.icon || DEFAULT_WEATHER_ICON}
                       alt={item.condition}
                       className="w-5 h-5 flex-shrink-0 drop-shadow-xs"
                       onError={(e) => {
-                        e.target.src = "https://apiserver.aqi.in/uploads/weather-icons/1.svg";
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = DEFAULT_WEATHER_ICON;
                       }}
                     />
                     <span
@@ -323,7 +335,7 @@ export const HourlyForecast = React.memo(function HourlyForecast({ hourly, advis
               >
                 <defs>
                   {/* Soft area gradient fill underneath the trendline */}
-                  <linearGradient id="hourlyTempGrad" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id={tempGradId} x1="0" y1="0" x2="0" y2="1">
                     <stop
                       offset="0%"
                       stopColor={isDark ? "#f43f5e" : "#f97316"}
@@ -337,7 +349,7 @@ export const HourlyForecast = React.memo(function HourlyForecast({ hourly, advis
                   </linearGradient>
 
                   {/* Stroke gradient */}
-                  <linearGradient id="hourlyStrokeGrad" x1="0" y1="0" x2="1" y2="0">
+                  <linearGradient id={strokeGradId} x1="0" y1="0" x2="1" y2="0">
                     <stop offset="0%" stopColor="#f43f5e" />
                     <stop offset="50%" stopColor="#fb923c" />
                     <stop offset="100%" stopColor="#f43f5e" />
@@ -345,13 +357,13 @@ export const HourlyForecast = React.memo(function HourlyForecast({ hourly, advis
                 </defs>
 
                 {/* Soft Gradient Area Fill */}
-                <path d={areaPath} fill="url(#hourlyTempGrad)" />
+                <path d={areaPath} fill={`url(#${tempGradId})`} />
 
                 {/* Continuous Bezier Temperature Line */}
                 <path
                   d={curvePath}
                   fill="none"
-                  stroke="url(#hourlyStrokeGrad)"
+                  stroke={`url(#${strokeGradId})`}
                   strokeWidth="2.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -450,7 +462,7 @@ export const HourlyForecast = React.memo(function HourlyForecast({ hourly, advis
           {advisory || "Conditions are expected to remain steady with clear visibility through the evening."}
         </p>
       </div>
-    </section>
+    </SectionCard>
   );
 });
 

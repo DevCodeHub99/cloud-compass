@@ -110,43 +110,31 @@ cd Weather-Forecast-Application
 # 2. Install dependencies
 npm install
 
-# 3. Start development server
+# 3. Configure local admin secret for /token endpoint
+cp .env.example .env.local
+# Edit .env.local and set ADMIN_SECRET=...
+
+# 4. Start development server
 npm run dev
 ```
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-### Production Build
-```bash
-# Build optimized static assets with code splitting
-npm run build
-
-# Preview production build locally
-npm run preview
-```
-
-### Running Test Suite
-```bash
-# Execute native zero-dependency test suite
-npm test
-```
-
 ---
 
-## Environment Configuration
+## Environment & Remote Token Administration
 
-CloudCompass is pre-configured with production-ready zero-configuration defaults and works immediately without any `.env` file.
+CloudCompass proxies all `aqi.in` telemetry through [`api/aqi.js`](file:///api/aqi.js) so no Bearer JWT is exposed in browser bundles or `localStorage`.
 
-To customize API endpoints or telemetry credentials, copy `.env.example` to `.env.local`:
+- **Hidden Admin Route (`/token`)**: Visit `/token` (e.g., `http://localhost:3000/token` or `https://your-app.vercel.app/token`) and unlock with `ADMIN_SECRET` to inspect token expiry and remotely rotate the global `aqi.in` Bearer token without redeploying the frontend.
+- **Persistent Global Storage on Vercel**: Configure **MongoDB Atlas** (`MONGODB_URI`, plus optional `MONGODB_DB`) in Vercel Environment Variables once alongside `ADMIN_SECRET` so updates via `/token` persist globally across all serverless instances.
 
-```bash
-cp .env.example .env.local
-```
-
-| Variable | Default Value | Description |
+| Variable | Scope | Description |
 | :--- | :--- | :--- |
-| `VITE_AQI_API_BASE` | `https://apiserver.aqi.in` | Base endpoint for the AQI.in telemetry cluster or custom reverse proxy |
-| `VITE_AQI_TOKEN` | Pre-bundled bootstrap token | Optional custom or rotated JWT Bearer token for telemetry |
-| `VITE_LOG_LEVEL` | `"warn"` (prod) / `"debug"` (dev) | Minimum logging threshold: `debug` \| `info` \| `warn` \| `error` \| `none` |
+| `ADMIN_SECRET` | Server (`api/token.js`) | Required secret passphrase protecting `/api/token` |
+| `MONGODB_URI` / `MONGODB_DB` | Server (`api/_tokenStore.js`) | MongoDB Atlas connection string (and optional DB override, default `cloudcompass`) for persistent global `/token` updates |
+| `AQI_TOKEN` | Server (`api/aqi.js`) | Optional initial fallback AQI.in Bearer token |
+| `AQI_API_BASE` | Server (`api/aqi.js`) | Optional upstream endpoint override (default: `https://apiserver.aqi.in`) |
+| `VITE_LOG_LEVEL` | Client | Minimum logging threshold: `debug` \| `info` \| `warn` \| `error` \| `none` |
 
 ---
 
@@ -174,37 +162,46 @@ dist/assets/vendor-CbbLAKBo.js       134.66 kB │ gzip: 43.22 kB
 Weather-Forecast-Application/
 ├── .env.example                 # Standardized environment template
 ├── .gitignore                   # Git exclusion rules
-├── index.html                   # HTML entrypoint with theme pre-hydration
+├── index.html                   # HTML entrypoint
 ├── package.json                 # Project dependencies and npm scripts
 ├── postcss.config.js            # PostCSS configuration
+├── public/
+│   └── theme-init.js            # CSP-safe pre-hydration theme bootstrap
 ├── tailwind.config.js           # Tailwind theme and dark-mode setup
-├── vercel.json                  # Edge routing, caching & API rewrites
-├── vite.config.js               # Bundler configuration & vendor chunking
+├── vercel.json                  # Edge routing, CSP/HSTS headers & caching
+├── vite.config.js               # Bundler configuration & local /api middleware
 ├── api/
-│   └── geo.js                   # Vercel Edge CDN IP geolocation handler
+│   ├── _tokenStore.js           # MongoDB Atlas / local file / env token store
+│   ├── aqi.js                   # Server-side allowlisted AQI.in proxy
+│   ├── geo.js                   # Vercel Edge CDN IP geolocation handler
+│   └── token.js                 # Admin-protected /api/token rotation handler
 └── src/
     ├── main.jsx                 # App root with ErrorBoundary wrapper
-    ├── App.jsx                  # State orchestration & mode synchronization
+    ├── App.jsx                  # State orchestration, /token routing & mode sync
     ├── index.css                # Global dual-theme styling & scrollbar hiding
     ├── img/
     │   └── bg-img.avif          # Optimized atmospheric backdrop image
     ├── constants/
-    │   ├── api.js               # Endpoints, environment fallbacks & storage keys
+    │   ├── api.js               # Endpoints, defaults & storage keys
     │   └── aqiStandards.js      # CPCB / US EPA bands, thresholds & formatting
     ├── utils/
-    │   ├── logger.js            # Production structured logger & telemetry hooks
+    │   ├── jwt.js               # Shared JWT claim parsing & expiry checks
+    │   ├── logger.js            # Production structured logger & global error hooks
     │   ├── solarCalculator.js   # NOAA astronomical sunrise, sunset & solar elevation
     │   └── weatherUtils.js      # Dew point, UV scale, wind direction & comfort math
     ├── services/
-    │   ├── aqiService.js        # AQI.in client, timeout abortion & geo math
+    │   ├── aqiService.js        # /api/aqi client, 24H/7D/30D trends & geo math
     │   ├── weatherService.js    # Telemetry normalization & meteorological forecast
     │   └── locationDetection.js # Multi-tier Edge/IP/Timezone progressive location discovery
     ├── hooks/
     │   ├── useGeolocation.js    # Browser GPS hook with descriptive error codes
     │   └── useLocalStorage.js   # Persistent storage hook with in-memory fallback
     └── components/
+        ├── admin/
+        │   └── TokenAdmin.jsx   # Hidden /token remote token rotation portal
         ├── common/
         │   ├── Header.jsx       # Branding & circular morphing theme toggle
+        │   ├── SectionCard.jsx  # Shared themed telemetry card surface
         │   ├── SearchBar.jsx    # Accessible WAI-ARIA location search & history
         │   ├── Footer.jsx       # Responsive footer with attribution
         │   ├── Loader.jsx       # Adaptive dark/light telemetry loader
@@ -213,7 +210,7 @@ Weather-Forecast-Application/
         │   ├── AQIView.jsx      # Lazy-loaded AQI mode container
         │   ├── AQIHero.jsx      # Master AQI card, spectrum slider & micro-weather
         │   ├── PollutantGrid.jsx# Active pollutant cards with status accents
-        │   ├── TrendChart.jsx   # 24-hour interactive pollution bar histogram
+        │   ├── TrendChart.jsx   # Interactive 24H / 7D / 30D pollution histogram
         │   ├── NearbyStations.jsx# Closest physical monitoring stations list
         │   ├── SensorWeather.jsx# On-site meteorological observations
         │   └── TopPollutedCities.jsx # Live polluted cities leaderboard
@@ -230,23 +227,7 @@ Weather-Forecast-Application/
 
 ## Observability & Error Tracking
 
-CloudCompass features an enterprise logging and telemetry event bus ([`src/utils/logger.js`](file:///src/utils/logger.js)):
-
-- **Global Error Handlers**: Automatically intercepts uncaught exceptions and unhandled promise rejections with URL, timestamp, and stack traces.
-- **Pluggable APM Subscriptions**: Connect external monitoring tools (e.g., Sentry, Datadog, LogRocket) via zero-dependency hooks:
-  ```javascript
-  import { onError, onEvent } from "./utils/logger";
-
-  // Forward exceptions to Sentry / Datadog
-  onError((errorPayload) => {
-    // Sentry.captureException(errorPayload.error, { extra: errorPayload.context });
-  });
-
-  // Forward user interactions to analytics
-  onEvent((eventPayload) => {
-    // analytics.track(eventPayload.name, eventPayload.data);
-  });
-  ```
+CloudCompass uses [`src/utils/logger.js`](file:///src/utils/logger.js) for level-filtered structured logging (`VITE_LOG_LEVEL`) alongside global `error` and `unhandledrejection` capture.
 
 ---
 
@@ -262,4 +243,4 @@ CloudCompass features an enterprise logging and telemetry event bus ([`src/utils
 
 ## License
 
-This project is open-source and distributed under the [MIT License](LICENSE).
+This project is open-source and distributed under the MIT License.

@@ -1,10 +1,7 @@
-export const AQI_API_BASE =
-  import.meta.env?.VITE_AQI_API_BASE || "https://apiserver.aqi.in";
+export const AQI_PROXY_BASE = "/api/aqi";
+export const TOKEN_ADMIN_ENDPOINT = "/api/token";
 
-// Read-only bootstrap token for aqi.in public telemetry (7-day validity cycle)
-export const DEFAULT_AQI_TOKEN =
-  import.meta.env?.VITE_AQI_TOKEN ||
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySUQiOjEsInBocFVzZXJJZCI6MSwiaWF0IjoxNzk0OTAyOTcyLCJleHAiOjE3OTU1MDc3NzJ9.DC_xHPbZh_FeEB3fNsi7j7zuhc3Rbo7NhuIBtsCdOOA";
+export const DEFAULT_WEATHER_ICON = "https://apiserver.aqi.in/uploads/weather-icons/1.svg";
 
 export const DEFAULT_LOCATION = {
   city: "New Delhi",
@@ -17,7 +14,6 @@ export const DEFAULT_LOCATION = {
 export const STORAGE_KEYS = {
   SEARCH_HISTORY: "cloudcompass_search_history",
   APP_MODE: "cloudcompass_app_mode",
-  AQI_TOKEN: "cloudcompass_aqi_token",
   THEME: "cloudcompass_theme",
   LAST_LOCATION: "cloudcompass_last_location"
 };
